@@ -1,0 +1,1974 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fluxo de Consulta</title>
+
+
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#F3EFE3;             /* Bege, um pouco mais neutro/sofisticado */
+    --bg-soft:#EDE7D6;
+    --surface:#FFFFFF;
+    --ink:#332C24;
+    --ink-soft:#7C7266;
+    --primary:#8C7A6B;
+    --primary-dark:#5E4E40;
+    --gold:#B07C1E;
+    --gold-bg:#FAF0D8;
+    --brick:#9C4A3A;
+    --brick-bg:#F8E7E2;
+    --line:#E6DFD1;
+    --line-soft:#EFE9DB;
+    --radius-sm:8px;
+    --radius-md:12px;
+    --radius-lg:18px;
+    --shadow-sm:0 1px 2px rgba(51,44,36,.05);
+    --shadow-md:0 6px 20px -6px rgba(51,44,36,.14);
+    --shadow-lg:0 24px 48px -18px rgba(51,44,36,.28);
+  }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    background:
+      radial-gradient(1200px 500px at 100% -10%, rgba(176,124,30,.07), transparent 60%),
+      radial-gradient(900px 500px at -10% 0%, rgba(140,122,107,.10), transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    letter-spacing:-.005em;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.font-display{ font-family:'Fraunces', serif; letter-spacing:-.01em; }
+  .tabular{ font-variant-numeric: tabular-nums; }
+  a,button,[role="button"],input,select,textarea{ outline-offset:2px; }
+  button:focus-visible,[role="button"]:focus-visible,a:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; border-radius:8px; }
+  input:focus-visible,select:focus-visible,textarea:focus-visible{ outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(140,122,107,.18); }
+  input,select,textarea{ transition:border-color .15s ease, box-shadow .15s ease; }
+  input:not([type=checkbox]):not([type=radio]):not([type=date]):not([type=time]),
+  select{ min-height:42px; }
+  input[type=checkbox],input[type=radio]{ width:16px; height:16px; accent-color:var(--primary); }
+  .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+  .card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow .18s ease, border-color .18s ease, transform .18s ease;
+  }
+  a.card:hover, .card.is-interactive:hover{
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary,.btn-ghost,.btn-brick{
+    display:inline-flex; align-items:center; justify-content:center; gap:.4rem;
+    font-weight:600; letter-spacing:.005em; cursor:pointer;
+    transition:background .15s ease, color .15s ease, border-color .15s ease, transform .1s ease, box-shadow .15s ease;
+  }
+  .btn-primary:active,.btn-ghost:active,.btn-brick:active{ transform:scale(.98); }
+  .btn-primary{
+    background:var(--primary); color:#fff; border-radius:10px; box-shadow:0 1px 2px rgba(51,44,36,.08);
+  }
+  .btn-primary:hover{ background:var(--primary-dark); box-shadow:0 4px 12px -4px rgba(94,78,64,.45); }
+  .btn-primary:disabled{ opacity:.6; cursor:not-allowed; transform:none; box-shadow:none; }
+  .btn-ghost{
+    background:var(--surface); border:1px solid var(--line); color:var(--ink);
+    border-radius:10px;
+  }
+  .btn-ghost:hover{ border-color:var(--primary); color:var(--primary-dark); background:var(--bg-soft); }
+  .btn-brick{ background:var(--brick); color:#fff; border-radius:10px; box-shadow:0 1px 2px rgba(51,44,36,.08); }
+  .btn-brick:hover{ background:#853D2F; box-shadow:0 4px 12px -4px rgba(156,74,58,.45); }
+  .badge{ font-size:.72rem; font-weight:700; padding:.22rem .6rem; border-radius:999px; letter-spacing:.02em; display:inline-flex; align-items:center; gap:.3rem; white-space:nowrap; }
+  .badge-livre{ background:#E4F0EA; color:#2F5D50; }
+  .badge-ocupado{ background:#EAE6F5; color:#4A3B7A; }
+  .badge-lotado{ background:var(--gold-bg); color:var(--gold); }
+  .badge-concluido{ background:#EDEAE2; color:#79705F; }
+
+  .queue-chip{
+    width:28px; height:28px; border-radius:999px; background:var(--gold-bg);
+    color:var(--gold); font-size:.75rem; font-weight:700;
+    display:flex; align-items:center; justify-content:center; border:1px solid #EAD9AE;
+  }
+  .cal-cell{
+    width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    font-size:.82rem; cursor:pointer; position:relative; transition:background .12s ease, color .12s ease;
+  }
+  .cal-cell:hover{ background:var(--bg-soft); }
+  .cal-cell.selected{ background:var(--primary); color:#fff; box-shadow:0 3px 10px -3px rgba(94,78,64,.5); }
+  .cal-cell.today{ font-weight:700; box-shadow:inset 0 0 0 1.5px var(--gold); }
+  .cal-dot{
+    position:absolute; bottom:3px; width:4px; height:4px; border-radius:999px; background:var(--gold);
+  }
+  .cal-cell.selected .cal-dot{ background:#fff; }
+  .cal-cell.blocked{ background:var(--brick-bg); color:var(--brick); text-decoration:line-through; }
+  .cal-block{ position:absolute; bottom:2px; font-size:11px; font-weight:700; }
+  ::-webkit-scrollbar{ height:6px; width:6px; }
+  ::-webkit-scrollbar-thumb{ background:var(--line); border-radius:99px; }
+
+  /* Novos componentes */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(51,44,36,0.5); backdrop-filter:blur(2px);
+    display:flex; align-items:center; justify-content:center; z-index:50; padding:1rem;
+    animation:fadeIn .15s ease-out;
+  }
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .stat-card{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md);
+    padding:1rem .9rem; text-align:center; position:relative; overflow:hidden;
+    box-shadow:var(--shadow-sm);
+  }
+  .stat-card::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--primary); opacity:.55;
+  }
+  .stat-num{ font-family:'Fraunces', serif; font-size:1.85rem; color:var(--primary-dark); line-height:1; font-weight:600; }
+  .avatar-circle{
+    width:56px; height:56px; border-radius:999px;
+    background:linear-gradient(155deg, var(--gold-bg), #F3E3BE);
+    box-shadow:inset 0 0 0 1px #EAD9AE;
+    display:flex; align-items:center; justify-content:center; font-size:1.6rem; flex-shrink:0;
+  }
+  .notif-panel{
+    position:absolute; right:0; top:calc(100% + 10px); width:340px; max-width:88vw; max-height:420px;
+    overflow-y:auto; z-index:40; box-shadow:var(--shadow-lg); animation:popIn .15s ease-out;
+  }
+  @keyframes popIn{ from{opacity:0; transform:translateY(-6px) scale(.98);} to{opacity:1; transform:translateY(0) scale(1);} }
+  .notif-dot{
+    position:absolute; top:-4px; right:-6px; background:var(--brick); color:#fff; font-size:.65rem;
+    font-weight:700; border-radius:999px; min-width:16px; height:16px; display:flex; align-items:center;
+    justify-content:center; padding:0 4px; box-shadow:0 0 0 2px var(--surface);
+  }
+  .tab-row{ display:inline-flex; gap:2px; background:var(--bg-soft); padding:3px; border-radius:12px; }
+  .tab-btn{ padding:.45rem 1rem; border-radius:9px; font-size:.82rem; font-weight:600; cursor:pointer; transition:background .15s ease, color .15s ease; }
+  .tab-btn.active{ background:var(--surface); color:var(--primary-dark); box-shadow:var(--shadow-sm); }
+  .tab-btn:not(.active){ background:transparent; color:var(--ink-soft); }
+  .tab-btn:not(.active):hover{ color:var(--ink); }
+  .toast-wrap{ position:fixed; right:1rem; bottom:1rem; z-index:100; display:flex; flex-direction:column; gap:.6rem; width:min(360px,calc(100vw - 2rem)); }
+  .toast{ background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--primary); border-radius:12px; padding:.8rem 1rem; box-shadow:var(--shadow-lg); display:flex; align-items:flex-start; gap:.65rem; animation:toastIn .18s ease-out; }
+  .toast.success{ border-left-color:#2F5D50; }
+  .toast.error{ border-left-color:var(--brick); }
+  .toast.info{ border-left-color:var(--gold); }
+  .calendar-popover{ width:290px; max-width:calc(100vw - 2rem); }
+  .rec-dia-wrap{ position:relative; }
+  .rec-dia{ position:absolute; opacity:0; width:1px; height:1px; pointer-events:none; }
+  .rec-dia + span{ transition:all .15s ease; user-select:none; }
+  .rec-dia:checked + span{ background:var(--primary); color:white; border-color:var(--primary); box-shadow:0 2px 5px rgba(62,54,46,.12); }
+  .rec-dia:focus-visible + span{ outline:2px solid var(--gold); outline-offset:2px; }
+  @keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  @media (max-width:640px){
+    .calendar-popover{ position:fixed !important; left:50% !important; right:auto !important; top:6rem !important; transform:translateX(-50%); width:min(290px,calc(100vw - 1.5rem)); margin:0 !important; }
+  }
+
+  /* Navegação inferior — mobile */
+  .mobile-bottombar{ display:none; }
+  @media (max-width: 768px){
+    .mobile-bottombar{
+      display:flex; position:fixed; left:0; right:0; bottom:0; z-index:60;
+      background:var(--surface); border-top:1px solid var(--line);
+      padding:.4rem .5rem calc(.4rem + env(safe-area-inset-bottom));
+      box-shadow:0 -8px 24px -12px rgba(51,44,36,.18);
+    }
+    .mobile-bottombar button{
+      flex:1; display:flex; flex-direction:column; align-items:center; gap:.15rem;
+      font-size:.66rem; font-weight:600; color:var(--ink-soft); padding:.35rem 0; border-radius:10px;
+      background:transparent;
+    }
+    .mobile-bottombar button .ic{ font-size:1.05rem; }
+    .mobile-bottombar button.active{ color:var(--primary-dark); }
+    body{ padding-bottom:64px; }
+  }
+
+  /* Responsividade — base */
+  html{overflow-x:hidden;}
+  body{min-width:0;overflow-x:hidden;}
+  button,input,select,textarea{font:inherit;max-width:100%;}
+  button{touch-action:manipulation;}
+  img,svg{max-width:100%;}
+
+  @media (max-width: 768px){
+    .max-w-5xl,.max-w-4xl,.max-w-3xl,.max-w-2xl{width:100%;max-width:none;}
+    #app > div{max-width:100%;}
+    .card{border-radius:var(--radius-md);}
+    .stat-card{padding:.8rem .55rem;min-width:0;}
+    .stat-num{font-size:1.5rem;}
+    .notif-panel{position:fixed;left:.75rem;right:.75rem;top:4.5rem;width:auto;max-width:none;max-height:min(70vh, 420px);}
+    .modal-overlay{padding:0;align-items:flex-end;}
+    .modal-overlay > .card{max-height:88vh;overflow-y:auto;border-radius:var(--radius-lg) var(--radius-lg) 0 0;width:100%;max-width:100%;}
+    .calendar-popover{z-index:70;}
+    .tab-btn{flex:1;text-align:center;min-height:38px;display:flex;align-items:center;justify-content:center;}
+    .tab-row{width:100%;}
+  }
+  @media (max-width: 640px){
+    body{font-size:14.5px;}
+    .calendar-popover{position:fixed !important;left:50% !important;right:auto !important;top:4.75rem !important;transform:translateX(-50%);width:min(340px,calc(100vw - 1rem)) !important;max-width:calc(100vw - 1rem);}
+    .cal-cell{width:38px;height:38px;}
+    .toast-wrap{right:.5rem;left:.5rem;bottom:calc(.5rem + 64px);width:auto;}
+    .toast{padding:.75rem .8rem;}
+    .btn-primary,.btn-ghost,.btn-brick{min-height:42px;}
+    .flex.items-center.justify-between{min-width:0;}
+    .grid.grid-cols-2{grid-template-columns:1fr 1fr;}
+    .grid.grid-cols-3,.grid.lg\:grid-cols-3{grid-template-columns:1fr;}
+    .space-y-3 > *{min-width:0;}
+    textarea{min-height:72px;}
+  }
+  @media (max-width: 420px){
+    .px-4{padding-left:1rem!important;padding-right:1rem!important;}
+    .py-8{padding-top:1.25rem!important;padding-bottom:1.25rem!important;}
+    .py-6{padding-top:1rem!important;padding-bottom:1rem!important;}
+    .font-display.text-2xl{font-size:1.4rem;line-height:1.2;}
+    .grid.grid-cols-2{grid-template-columns:1fr 1fr;gap:.5rem;}
+    .stat-num{font-size:1.3rem;}
+    .badge{font-size:.66rem;padding:.18rem .5rem;}
+    .card.p-4{padding:.85rem;}
+    .card.p-5{padding:1rem;}
+    .card.p-6{padding:1.1rem;}
+  }
+
+  /* Ações e tabelas responsivas */
+  .action-row{display:flex;flex-wrap:wrap;gap:.5rem;min-width:0}
+  .action-row > *{min-width:0}
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  @media (max-width:768px){
+    .action-row > button,.action-row > a{flex:1 1 140px}
+    .card{overflow:hidden}
+    .grid{min-width:0}
+    input,select,textarea{min-width:0}
+  }
+  @media (max-width:480px){
+    .action-row > button,.action-row > a{flex:1 1 100%}
+  }
+
+  /* Cartão de horário: empilha ações no mobile em vez de espremer ao lado */
+  @media (max-width:480px){
+    .cartao-horario{flex-direction:column;align-items:stretch !important;}
+    .cartao-horario > div:last-child{width:100%;text-align:left !important;min-width:0 !important;}
+    .cartao-horario > div:last-child .flex-col{flex-direction:row;flex-wrap:wrap;}
+    .cartao-horario > div:last-child button{flex:1 1 auto;}
+  }
+
+  /* Selo de convênio (chip de plano de saúde) */
+  .convenio-chip{
+    display:inline-flex; align-items:center; gap:.35rem; font-size:.68rem; font-weight:700;
+    padding:.2rem .55rem .2rem .3rem; border-radius:999px; border:1px solid var(--line); background:var(--surface);
+    white-space:nowrap;
+  }
+  .convenio-chip .sigla{
+    width:18px; height:18px; border-radius:6px; display:flex; align-items:center; justify-content:center;
+    font-size:.6rem; font-weight:800; color:#fff; flex-shrink:0;
+  }
+  .clinica-icon{
+    width:56px; height:56px; border-radius:16px;
+    display:flex; align-items:center; justify-content:center; font-size:1.7rem; flex-shrink:0;
+  }
+</style>
+</head>
+<body>
+
+<div id="app" class="min-h-screen"></div>
+
+<script>
+
+
+function hojeISO(offsetDias = 0){
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDias);
+  return d.toISOString().slice(0,10);
+}
+
+// Catálogo de convênios aceitos (usado para montar os selos coloridos das clínicas/médicos)
+const CONVENIOS_INFO = {
+  'Mediservice':      { sigla:'MS', cor:'#CC092F', obs:'Bradesco Saúde' },
+  'Petrobras AMS':     { sigla:'BR', cor:'#00843D', obs:'Petrobras' },
+  'SulAmérica':        { sigla:'SA', cor:'#F58220' },
+  'Bradesco Saúde':    { sigla:'BS', cor:'#CC092F' },
+  'FSFX':              { sigla:'FX', cor:'#3B5BA5' },
+  'Cassi':             { sigla:'CI', cor:'#0072B8' },
+  'Porto Saúde':       { sigla:'PS', cor:'#0A4B8C' },
+};
+
+function chipConvenio(nome){
+  const info = CONVENIOS_INFO[nome] || { sigla: nome.slice(0,2).toUpperCase(), cor:'#8C7A6B' };
+  return `<span class="convenio-chip"><span class="sigla" style="background:${info.cor}">${info.sigla}</span>${nome}</span>`;
+}
+
+function clinicasPadrao(){
+  return [
+    {
+      id: 1,
+      nome: 'Clínica CardioVida',
+      especialidade: 'Cardiologia',
+      descricao: 'Referência em cardiologia clínica, check-up cardiológico, ecocardiograma e teste ergométrico, com atendimento humanizado e agenda facilitada.',
+      icone: '❤️',
+      endereco: 'Av. Paulista, 1500 - Conjunto 12 - Bela Vista',
+      convenios: ['Mediservice', 'Petrobras AMS', 'SulAmérica', 'Bradesco Saúde', 'FSFX', 'Cassi', 'Porto Saúde'],
+    },
+    {
+      id: 2,
+      nome: 'Espaço Bem-Estar',
+      especialidade: 'Saúde multidisciplinar',
+      descricao: 'Psicologia, fisioterapia e nutrição em um só endereço, com atendimento presencial e online.',
+      icone: '🌿',
+      endereco: 'Rua das Flores, 123 - Centro',
+      convenios: ['Particular'],
+    },
+  ];
+}
+
+let state = {
+  usuario: null, 
+
+  clinicas: clinicasPadrao(),
+  proximoIdClinica: 3,
+
+  profissionais: [
+    { id: 1, nome: 'Dra. Camila Duarte', email: 'camila@email.com', senha: '123', profissao: 'Psicóloga',
+      especialidade: 'Psicologia Clínica', avatar: '👩‍⚕️', clinicaId: 2,
+      descricao: 'Atendimento focado em ansiedade, autoestima e desenvolvimento pessoal, com escuta acolhedora e abordagem cognitivo-comportamental.',
+      modalidadeAtendimento: 'ambos', localAtendimento: 'Rua das Flores, 123 - Centro' },
+    { id: 2, nome: 'Dr. João Silva', email: 'joao@email.com', senha: '123', profissao: 'Fisioterapeuta',
+      especialidade: 'Fisioterapia Ortopédica', avatar: '🧑‍⚕️', clinicaId: 2,
+      descricao: 'Reabilitação de lesões musculares e articulares, com foco em retorno seguro às atividades do dia a dia.',
+      modalidadeAtendimento: 'presencial', localAtendimento: 'Av. Central, 456 - Sala 12' },
+    { id: 3, nome: 'Dr. Marcos Lima', email: 'marcos@email.com', senha: '123', profissao: 'Nutricionista',
+      especialidade: 'Nutrição Esportiva', avatar: '🧑‍⚕️', clinicaId: 2,
+      descricao: 'Planejamento alimentar personalizado para performance esportiva e emagrecimento saudável.',
+      modalidadeAtendimento: 'online', localAtendimento: '' },
+    { id: 4, nome: 'Dr. Ricardo Andrade', email: 'ricardo@email.com', senha: '123', profissao: 'Cardiologista',
+      especialidade: 'Cardiologia Clínica', avatar: '🧑‍⚕️', clinicaId: 1,
+      descricao: 'Atendimento cardiológico geral, avaliação de risco cardiovascular e acompanhamento de hipertensão.',
+      modalidadeAtendimento: 'presencial', localAtendimento: 'Av. Paulista, 1500 - Conjunto 12 - Bela Vista' },
+    { id: 5, nome: 'Dra. Fernanda Souza', email: 'fernanda@email.com', senha: '123', profissao: 'Cardiologista',
+      especialidade: 'Ecocardiografia', avatar: '👩‍⚕️', clinicaId: 1,
+      descricao: 'Especialista em ecocardiograma e cardiologia preventiva, com foco em diagnóstico precoce.',
+      modalidadeAtendimento: 'presencial', localAtendimento: 'Av. Paulista, 1500 - Conjunto 12 - Bela Vista' },
+  ],
+  proximoIdProfissional: 6,
+
+  pacientes: [
+    { id: 1, nome: 'Ana Beatriz',  email: 'ana@email.com',  senha: '123' },
+    { id: 2, nome: 'Pedro Gomes',   email: 'pedro@email.com', senha: '123' },
+  ],
+  proximoIdPaciente: 3,
+
+  horarios: [],
+  proximoIdHorario: 1,
+
+  consultas: [],
+  proximoIdConsulta: 1,
+
+  notificacoes: [],
+  proximoIdNotificacao: 1,
+
+  diaSelecionado: hojeISO(1),
+  clinicaSelecionadaId: null,
+  profissionalSelecionadoId: null, 
+  agendaAberta: false,
+  configuracaoAgenda: {},
+  bloqueios: [],
+  recorrencias: [],
+  proximoIdRecorrencia: 1,
+  notasPrivadas: {},
+  lembretesEnviados: {},
+  confirmacoes: {},
+  anotacoesPrivadas: {},
+  reagendamentos: {},
+  avaliacoes: {},
+  configuracoes: { cancelamentoHoras: 4, confirmacaoHoras: 3, lembrete24h: true, lembrete2h: true }
+};
+
+
+let abaPaciente = 'profissionais';       
+let notificacoesAbertas = false;
+let modalCancelamentoId = null;          
+let buscaProfissionalTexto = '';
+let filtroEspecialidade = 'todas';
+let filtroModalidadeProf = 'todas';
+let cadModalidadeSelecionada = 'presencial';
+
+function novoHorario(profId, diaOffset, hora, modalidade){
+  state.horarios.push({
+    id: state.proximoIdHorario++,
+    profissionalId: profId,
+    data: hojeISO(diaOffset),
+    hora, modalidade,
+    status: 'livre',
+    pacienteId: null,
+    fila: [],
+  });
+}
+
+
+function dataParaDate(iso){ return new Date(iso + 'T00:00:00'); }
+function dateParaISO(d){ return d.toISOString().slice(0,10); }
+function adicionarDiasISO(iso, dias){ const d=dataParaDate(iso); d.setDate(d.getDate()+dias); return dateParaISO(d); }
+function horarioBloqueado(profId, data){ return state.bloqueios.some(b => b.profissionalId === profId && b.data === data); }
+function adicionarHorarioPorData(profId, data, hora, modalidade){
+  if (horarioBloqueado(profId, data)) return false;
+  if (state.horarios.some(h => h.profissionalId===profId && h.data===data && h.hora===hora)) return false;
+  state.horarios.push({ id: state.proximoIdHorario++, profissionalId:profId, data, hora, modalidade, status:'livre', pacienteId:null, fila:[] });
+  return true;
+}
+function bloquearPeriodo(){
+  const inicio=document.getElementById('bloq-inicio')?.value;
+  const fim=document.getElementById('bloq-fim')?.value;
+  const motivo=document.getElementById('bloq-motivo')?.value?.trim() || 'Indisponibilidade';
+  if(!inicio||!fim) return mensagemErro('Informe o início e o fim do período.');
+  if(inicio<hojeISO() || fim<inicio) return mensagemErro('Confira o período de bloqueio.');
+
+  let bloqueadas=0, ocupadas=0, data=inicio;
+  while(data<=fim){
+    if(!horarioBloqueado(state.usuario.id,data)){
+      const ocupados=state.horarios.filter(h=>h.profissionalId===state.usuario.id && h.data===data && (h.pacienteId || h.fila.length));
+      if(ocupados.length){ ocupadas++; }
+      else {
+        state.bloqueios.push({id:Date.now()+bloqueadas, profissionalId:state.usuario.id, data, motivo});
+        state.horarios=state.horarios.filter(h=>!(h.profissionalId===state.usuario.id && h.data===data));
+        bloqueadas++;
+      }
+    }
+    data=adicionarDiasISO(data,1);
+  }
+  if(!bloqueadas && ocupadas) return mensagemErro(`Nenhuma data foi bloqueada porque ${ocupadas} dia(s) possuem atendimento ou fila.`);
+  mostrarToast(`${bloqueadas} ${bloqueadas===1?'data bloqueada':'datas bloqueadas'}${ocupadas ? ` · ${ocupadas} não bloqueada(s) por terem atendimento/fila` : ''}.`, ocupadas ? 'info' : 'success');
+  render();
+}
+function desbloquearData(id){
+  state.bloqueios = state.bloqueios.filter(b=>b.id!==id);
+  mostrarToast('Data liberada para novos horários.'); render();
+}
+function selecionarTodosDiasRecorrencia(tipo){
+  const valores = tipo==='uteis' ? [1,2,3,4,5] : [0,1,2,3,4,5,6];
+  document.querySelectorAll('.rec-dia').forEach(el=>el.checked=valores.includes(Number(el.value)));
+}
+function cadastrarRecorrencia(){
+  const inicio=document.getElementById('rec-inicio')?.value;
+  const fim=document.getElementById('rec-fim')?.value;
+  const hora=document.getElementById('rec-hora')?.value;
+  const modalidade=document.getElementById('rec-modalidade')?.value;
+  const dias=[...document.querySelectorAll('.rec-dia:checked')].map(x=>Number(x.value));
+  if(!inicio||!fim||!hora||!dias.length) return mensagemErro('Selecione o período, o horário e pelo menos um dia da semana.');
+  if(inicio<hojeISO() || fim<inicio) return mensagemErro('Confira o período da recorrência.');
+
+  let criados=0, ignorados=0, data=inicio;
+  while(data<=fim){
+    const dow=dataParaDate(data).getDay();
+    if(dias.includes(dow)){
+      if(horarioBloqueado(state.usuario.id,data)) ignorados++;
+      else if(adicionarHorarioPorData(state.usuario.id,data,hora,modalidade)) criados++;
+      else ignorados++;
+    }
+    data=adicionarDiasISO(data,1);
+  }
+  state.recorrencias.push({id:state.proximoIdRecorrencia++,profissionalId:state.usuario.id,inicio,fim,hora,modalidade,dias});
+  const nomes=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  mostrarToast(`${criados} ${criados===1?'horário criado':'horários criados'} · ${dias.map(d=>nomes[d]).join(', ')}${ignorados?` · ${ignorados} ignorado(s)`:''}.`, criados ? 'success' : 'info');
+  render();
+}
+
+function removerRecorrencia(id){
+  const r=state.recorrencias.find(x=>x.id===id); if(!r) return;
+  state.horarios=state.horarios.filter(h=>!(h.profissionalId===r.profissionalId && h.hora===r.hora && h.data>=r.inicio && h.data<=r.fim && r.dias.includes(dataParaDate(h.data).getDay()) && !h.pacienteId && !h.fila.length));
+  state.recorrencias=state.recorrencias.filter(x=>x.id!==id);
+  mostrarToast('Recorrência removida.'); render();
+}
+
+function semearDados(){
+  state.horarios = [];
+  state.consultas = [];
+  state.notificacoes = [];
+  state.proximoIdHorario = 1;
+  state.proximoIdConsulta = 1;
+  state.proximoIdNotificacao = 1;
+
+  // Horários Camila
+  novoHorario(1, 0, '09:00', 'online');
+  novoHorario(1, 0, '10:00', 'presencial');
+  novoHorario(1, 1, '14:00', 'online');
+
+  // Horários João
+  novoHorario(2, 0, '11:00', 'presencial');
+  novoHorario(2, 1, '09:00', 'presencial');
+
+  // Horários Marcos
+  novoHorario(3, 0, '16:00', 'online');
+  novoHorario(3, 1, '10:00', 'online');
+
+  // Horários Dr. Ricardo (CardioVida)
+  novoHorario(4, 0, '08:00', 'presencial');
+  novoHorario(4, 0, '09:00', 'presencial');
+  novoHorario(4, 1, '15:00', 'presencial');
+
+  // Horários Dra. Fernanda (CardioVida)
+  novoHorario(5, 0, '13:00', 'presencial');
+  novoHorario(5, 1, '11:00', 'presencial');
+
+  // Simular agendamentos (dados de exemplo para testar a fila e o dashboard)
+  agendar(1, 2, { silencioso: true }); // Ana na Camila às 10:00 (hoje)
+  agendar(2, 1, { silencioso: true }); // Pedro na Camila às 09:00 (hoje)
+  agendar(2, 4, { silencioso: true }); // Pedro no João às 11:00 (hoje) -> ocupa
+  agendar(1, 9, { silencioso: true }); // Ana no Dr. Ricardo às 08:00 (hoje)
+}
+
+function carregarDados() {
+  const salvo = localStorage.getItem('fluxoConsultaState');
+  if (salvo) {
+    state = JSON.parse(salvo);
+    // Migração robusta: versões anteriores podem ter estruturas incompletas no LocalStorage.
+    state.profissionais = Array.isArray(state.profissionais) ? state.profissionais : [];
+    state.pacientes = Array.isArray(state.pacientes) ? state.pacientes : [];
+    state.horarios = Array.isArray(state.horarios) ? state.horarios : [];
+    state.consultas = Array.isArray(state.consultas) ? state.consultas : [];
+    state.notificacoes = Array.isArray(state.notificacoes) ? state.notificacoes : [];
+    state.bloqueios = Array.isArray(state.bloqueios) ? state.bloqueios : [];
+    state.recorrencias = Array.isArray(state.recorrencias) ? state.recorrencias : [];
+    state.confirmacoes = state.confirmacoes && typeof state.confirmacoes === 'object' ? state.confirmacoes : {};
+    state.anotacoesPrivadas = state.anotacoesPrivadas && typeof state.anotacoesPrivadas === 'object' ? state.anotacoesPrivadas : {};
+    state.reagendamentos = state.reagendamentos && typeof state.reagendamentos === 'object' ? state.reagendamentos : {};
+    state.avaliacoes = state.avaliacoes && typeof state.avaliacoes === 'object' ? state.avaliacoes : {};
+    state.lembretesEnviados = state.lembretesEnviados && typeof state.lembretesEnviados === 'object' ? state.lembretesEnviados : {};
+    state.configuracoes = state.configuracoes && typeof state.configuracoes === 'object' ? state.configuracoes : {};
+    state.horarios.forEach(h => { h.id=Number(h.id); h.profissionalId=Number(h.profissionalId); h.pacienteId=h.pacienteId==null?null:Number(h.pacienteId); h.fila=Array.isArray(h.fila)?h.fila.map(Number):[]; h.status=h.status|| (h.pacienteId?'ocupado':'livre'); });
+    state.consultas.forEach(c => { c.id=Number(c.id); c.pacienteId=Number(c.pacienteId); c.horarioId=Number(c.horarioId); c.status=c.status||'confirmada'; });
+    // Migração leve: garante que dados salvos antes destas melhorias não quebrem a tela.
+    // Compatibilidade com estados salvos de versões anteriores: IDs devem ter o mesmo tipo.
+    state.profissionais = (state.profissionais || []).map(p => ({...p, id:Number(p.id)}));
+    state.pacientes = (state.pacientes || []).map(p => ({...p, id:Number(p.id)}));
+    state.horarios = (state.horarios || []).map(h => ({...h, id:Number(h.id), profissionalId:Number(h.profissionalId), pacienteId:h.pacienteId == null ? null : Number(h.pacienteId)}));
+    state.consultas = (state.consultas || []).map(c => ({...c, id:Number(c.id), pacienteId:Number(c.pacienteId), horarioId:Number(c.horarioId), alertaFaltas:!!c.alertaFaltas}));
+    if (state.agendaAberta === undefined) state.agendaAberta = false;
+    if (!Array.isArray(state.bloqueios)) state.bloqueios = [];
+    if (!Array.isArray(state.recorrencias)) state.recorrencias = [];
+    if (state.proximoIdRecorrencia === undefined) state.proximoIdRecorrencia = 1;
+    if (!state.lembretesEnviados) state.lembretesEnviados = {};
+    if (!state.confirmacoes) state.confirmacoes = {};
+    if (!state.configuracoes) state.configuracoes = { cancelamentoHoras: 4, confirmacaoHoras: 3, lembrete24h: true, lembrete2h: true };
+    if (state.configuracoes.cancelamentoHoras == null) state.configuracoes.cancelamentoHoras = 4;
+    if (state.configuracoes.confirmacaoHoras == null) state.configuracoes.confirmacaoHoras = 3;
+    // Migração: adiciona clínicas para estados salvos de versões anteriores (sem esse conceito)
+    if (!Array.isArray(state.clinicas) || !state.clinicas.length) {
+      state.clinicas = clinicasPadrao();
+      state.proximoIdClinica = 3;
+    }
+    if (state.clinicaSelecionadaId === undefined) state.clinicaSelecionadaId = null;
+    state.profissionais.forEach(p => {
+      if (!p.especialidade) p.especialidade = p.profissao;
+      if (!p.avatar) p.avatar = '🧑‍⚕️';
+      if (!p.descricao) p.descricao = 'Profissional cadastrado na plataforma Fluxo.';
+      if (!p.modalidadeAtendimento) p.modalidadeAtendimento = 'presencial';
+      if (p.localAtendimento === undefined) p.localAtendimento = '';
+      if (p.clinicaId === undefined || p.clinicaId === null) p.clinicaId = state.clinicas[state.clinicas.length - 1].id;
+    });
+    state.notificacoes.forEach(n => { if (n.lida === undefined) n.lida = false; if (n.profissionalId === undefined) n.profissionalId = null; });
+  } else {
+    semearDados();
+  }
+}
+
+function salvarDados() {
+  localStorage.setItem('fluxoConsultaState', JSON.stringify(state));
+}
+
+function getPaciente(id){ return state.pacientes.find(p => p.id === id); }
+function getProfissional(id){ return state.profissionais.find(p => p.id === id); }
+function getHorario(id){ return state.horarios.find(h => h.id === id); }
+function getClinica(id){ return state.clinicas.find(c => c.id === id); }
+
+function formatarDataCurta(iso){
+  const d = new Date(iso + 'T00:00:00');
+  const s = d.toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'short' });
+  return s.charAt(0).toUpperCase() + s.slice(1).replace('.', '');
+}
+function formatarDataCompleta(iso){
+  const d = new Date(iso + 'T00:00:00');
+  const s = d.toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+let toasts = [];
+let toastTimer = null;
+
+function escaparHtml(v){
+  return String(v ?? '').replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function mostrarToast(mensagem, tipo='success'){
+  const id = Date.now() + Math.random();
+  toasts.push({id, mensagem, tipo});
+  renderToasts();
+  setTimeout(() => { toasts = toasts.filter(t => t.id !== id); renderToasts(); }, 3200);
+}
+
+function renderToasts(){
+  let wrap = document.getElementById('toast-wrap');
+  if (!wrap) {
+    wrap = document.createElement('div'); wrap.id = 'toast-wrap'; wrap.className = 'toast-wrap'; document.body.appendChild(wrap);
+  }
+  wrap.innerHTML = toasts.map(t => `<div class="toast ${t.tipo}"><span>${t.tipo==='success'?'✓':t.tipo==='error'?'!':'i'}</span><span class="text-sm">${escaparHtml(t.mensagem)}</span></div>`).join('');
+}
+
+function mensagemErro(mensagem){ mostrarToast(mensagem, 'error'); }
+
+function notificar(pacienteId, tipo, mensagem, profissionalId = null){
+  state.notificacoes.unshift({
+    id: state.proximoIdNotificacao++,
+    pacienteId, profissionalId, tipo, mensagem,
+    lida: false,
+    criadaEm: new Date().toISOString(),
+  });
+}
+
+function pacienteTemConflito(pacienteId, data, hora){
+  return state.consultas.some(c => {
+    if (c.pacienteId !== pacienteId) return false;
+    if (!['confirmada', 'fila'].includes(c.status)) return false;
+    const h = getHorario(c.horarioId);
+    return h && h.data === data && h.hora === hora;
+  });
+}
+
+function horarioJaEncerrado(data, hora){
+  const agora = new Date();
+  const hojeStr = hojeISO();
+  if (data > hojeStr) return false;
+  if (data < hojeStr) return true;
+  const horaAtual = agora.toTimeString().slice(0,5);
+  return hora <= horaAtual;
+}
+
+function horasAteConsulta(h){
+  if(!h) return Infinity;
+  const d = new Date(h.data + 'T' + h.hora + ':00');
+  return (d.getTime() - Date.now()) / 3600000;
+}
+function consultaJaPassou(h){
+  if(!h || !h.data || !h.hora) return false;
+  return horasAteConsulta(h) <= 0;
+}
+function lembreteChave(c, tipo){ return `${c.id}:${tipo}`; }
+function processarLembretes(){
+  if(!state.usuario) return;
+  const agora = Date.now();
+  state.consultas.filter(c=>c.status==='confirmada').forEach(c=>{
+    const h=getHorario(c.horarioId); if(!h) return;
+    const horas=horasAteConsulta(h);
+    if(horas < 0) return;
+    const prof=getProfissional(h.profissionalId); if(!prof) return;
+    if(state.configuracoes.lembrete24h && horas <= 24 && horas > 2 && !state.lembretesEnviados[lembreteChave(c,'24h')]){
+      notificar(c.pacienteId,'lembrete24',`Lembrete: sua consulta com ${prof.nome} é ${formatarDataCurta(h.data)} às ${h.hora}.`);
+      state.lembretesEnviados[lembreteChave(c,'24h')] = agora;
+    }
+    if(state.configuracoes.lembrete2h && horas <= 2 && horas > 0 && !state.lembretesEnviados[lembreteChave(c,'2h')]){
+      notificar(c.pacienteId,'lembrete2h',`Sua consulta com ${prof.nome} começa em até 2 horas, às ${h.hora}.`);
+      state.lembretesEnviados[lembreteChave(c,'2h')] = agora;
+    }
+    const limite=Number(state.configuracoes.confirmacaoHoras)||3;
+    if(horas <= limite && !state.confirmacoes[c.id]){
+      state.confirmacoes[c.id]={status:'pendente', criadoEm:new Date().toISOString()};
+      notificar(c.pacienteId,'confirmacao_pendente',`Confirme sua consulta com ${prof.nome} às ${h.hora}. A confirmação é necessária antes do atendimento.`);
+    }
+  });
+}
+function consultaPodeSerCancelada(c){
+  const h=getHorario(c.horarioId); if(!h) return {ok:false,motivo:'Consulta não encontrada.'};
+  const limite=Number(state.configuracoes.cancelamentoHoras)||4;
+  if(horasAteConsulta(h) < limite) return {ok:false,motivo:`O prazo mínimo para cancelamento é de ${limite} horas antes da consulta.`};
+  return {ok:true};
+}
+function contarFaltasPaciente(pacienteId){ return state.consultas.filter(c=>c.pacienteId===pacienteId && c.status==='faltou').length; }
+function clienteComMuitasFaltas(pacienteId){ return contarFaltasPaciente(pacienteId)>=3; }
+
+function salvarAnotacaoPrivada(consultaId){
+  const c=state.consultas.find(x=>x.id===consultaId); if(!c||state.usuario.tipo!=='profissional') return;
+  const el=document.getElementById('nota-'+consultaId); const texto=(el?.value||'').trim();
+  if(!texto) return mensagemErro('Escreva uma observação antes de salvar.');
+  const arr=Array.isArray(state.anotacoesPrivadas[consultaId])?state.anotacoesPrivadas[consultaId]:[];
+  arr.push({id:Date.now(),profissionalId:state.usuario.id,texto,criadoEm:new Date().toISOString()}); state.anotacoesPrivadas[consultaId]=arr;
+  mostrarToast('Anotação privada salva.'); render();
+}
+function abrirReagendamento(consultaId){ if(state.usuario?.tipo !== 'paciente'){ mensagemErro('O reagendamento é feito pelo paciente.'); return; } const c=state.consultas.find(x=>x.id===consultaId); if(!c)return; const h=getHorario(c.horarioId); if(!h)return; const prof=getProfissional(h.profissionalId); const disponiveis=state.horarios.filter(x=>x.profissionalId===h.profissionalId&&x.status==='livre'&&!horarioJaEncerrado(x.data,x.hora)).sort((a,b)=>(a.data+a.hora).localeCompare(b.data+b.hora)).slice(0,12); const op=disponiveis.map(x=>`<option value="${x.id}">${formatarDataCurta(x.data)} · ${x.hora} · ${x.modalidade==='online'?'Online':'Presencial'}</option>`).join('');
+  const modal=document.createElement('div'); modal.id='modal-reagendamento'; modal.className='fixed inset-0 bg-black/40 z-[80] flex items-center justify-center p-4'; modal.innerHTML=`<div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl"><h3 class="font-display text-xl">Reagendar consulta</h3><p class="text-sm text-[var(--ink-soft)] mt-2">${escaparHtml(prof?.nome||'Profissional')} · escolha um novo horário.</p>${op?`<select id="novo-horario-reag" class="w-full border border-[var(--line)] rounded-lg p-2 mt-4">${op}</select><div class="flex gap-2 mt-5"><button class="btn-ghost flex-1 py-2" onclick="document.getElementById('modal-reagendamento')?.remove()">Cancelar</button><button class="btn-primary flex-1 py-2" onclick="confirmarReagendamento(${consultaId})">Reagendar</button></div>`:`<div class="card p-4 mt-4 text-sm">Não há horários livres disponíveis no momento.</div><button class="btn-ghost w-full py-2 mt-4" onclick="document.getElementById('modal-reagendamento')?.remove()">Fechar</button>`}</div>`; document.body.appendChild(modal); }
+function confirmarReagendamento(consultaId){ const c=state.consultas.find(x=>x.id===consultaId); const novoId=Number(document.getElementById('novo-horario-reag')?.value); const novo=getHorario(novoId); if(!c||!novo||novo.status!=='livre')return mensagemErro('Esse horário não está mais disponível.'); const antigo=getHorario(c.horarioId); const prof=getProfissional(novo.profissionalId); if(antigo) { antigo.pacienteId=null; antigo.status='livre'; }
+  c.horarioId=novo.id; c.status='confirmada'; novo.pacienteId=c.pacienteId; novo.status='ocupado'; c.reagendadoDe=antigo?.id||null; c.reagendadoEm=new Date().toISOString(); state.reagendamentos[c.id]={de:antigo?.id||null,para:novo.id,data:c.reagendadoEm}; notificar(c.pacienteId,'reagendamento',`Sua consulta com ${prof?.nome||'profissional'} foi reagendada para ${formatarDataCurta(novo.data)} às ${novo.hora}.`); notificar(null,'reagendamento_profissional',`Consulta de ${getPaciente(c.pacienteId)?.nome||'cliente'} reagendada para ${formatarDataCurta(novo.data)} às ${novo.hora}.`,prof?.id); document.getElementById('modal-reagendamento')?.remove(); mostrarToast('Consulta reagendada com sucesso.'); render(); }
+function salvarAvaliacao(consultaId){ const c=state.consultas.find(x=>x.id===consultaId); if(!c||c.status!=='realizada')return; const nota=Number(document.getElementById('nota-av-'+consultaId)?.value||0); const comentario=(document.getElementById('coment-av-'+consultaId)?.value||'').trim(); if(nota<1||nota>5)return mensagemErro('Escolha uma nota de 1 a 5.'); state.avaliacoes[consultaId]={nota,comentario,criadoEm:new Date().toISOString()}; const h=getHorario(c.horarioId); notificar(null,'avaliacao_recebida',`Você recebeu uma avaliação de ${getPaciente(c.pacienteId)?.nome||'cliente'}.`,h?.profissionalId); mostrarToast('Avaliação enviada. Obrigado!'); render(); }
+function agendar(pacienteId, horarioId, opcoes = {}){
+  const h = getHorario(horarioId);
+  if (!h || h.status === 'concluido') {
+    if (!opcoes.silencioso) mensagemErro('Este horário não está mais disponível.');
+    return;
+  }
+
+  if (pacienteTemConflito(pacienteId, h.data, h.hora)) {
+    if (!opcoes.silencioso) mensagemErro('Você já tem uma consulta nesse mesmo dia e horário.');
+    return;
+  }
+
+  if (h.fila.includes(pacienteId)) {
+    if (!opcoes.silencioso) mensagemErro('Você já está na fila de espera para este horário.');
+    return;
+  }
+
+  if (!opcoes.silencioso && horarioJaEncerrado(h.data, h.hora)) {
+    mensagemErro('Este horário já foi encerrado e não pode mais ser agendado.');
+    return;
+  }
+
+  const prof = getProfissional(h.profissionalId);
+  const muitasFaltas = clienteComMuitasFaltas(pacienteId);
+  if (h.status === 'livre') {
+    h.status = 'ocupado';
+    h.pacienteId = pacienteId;
+    state.consultas.push({ id: state.proximoIdConsulta++, pacienteId, horarioId, status: 'confirmada', alertaFaltas: muitasFaltas });
+    if (!opcoes.silencioso) {
+      notificar(pacienteId, 'confirmacao',
+        `Sua consulta com ${prof.nome} foi confirmada para ${formatarDataCurta(h.data)} às ${h.hora}.`);
+      notificar(null, 'novo_agendamento', `${getPaciente(pacienteId)?.nome || 'Cliente'} agendou ${formatarDataCurta(h.data)} às ${h.hora}.`, prof.id);
+      if (muitasFaltas) notificar(null, 'alerta_faltas', `Atenção: ${getPaciente(pacienteId)?.nome || 'Cliente'} possui ${contarFaltasPaciente(pacienteId)} faltas registradas.`, prof.id);
+    }
+  } else {
+    h.fila.push(pacienteId);
+    h.status = 'lotado';
+    state.consultas.push({ id: state.proximoIdConsulta++, pacienteId, horarioId, status: 'fila' });
+    if (!opcoes.silencioso) {
+      notificar(pacienteId, 'fila',
+        `Você entrou na fila de espera para ${formatarDataCurta(h.data)} às ${h.hora}. Sua posição é ${h.fila.length}.`);
+    }
+  }
+  if (!opcoes.silencioso) render();
+}
+
+/* Libera um horário (sem paciente) e promove automaticamente o próximo da fila, se houver.
+   Função central reutilizada tanto pelo cancelamento do profissional quanto pelo cancelamento do paciente. */
+function agendarComFeedback(pacienteId, horarioId, botao){
+  if (botao) { botao.disabled = true; botao.dataset.originalText = botao.textContent; botao.textContent = 'Agendando…'; botao.style.opacity = '.7'; }
+  setTimeout(() => {
+    const antes = getHorario(horarioId)?.status;
+    agendar(pacienteId, horarioId);
+    const depois = getHorario(horarioId)?.status;
+    if (depois && depois !== antes) mostrarToast(depois === 'lotado' ? 'Você entrou na fila de espera.' : 'Consulta agendada com sucesso.');
+  }, 180);
+}
+
+function liberarHorarioEPromover(horarioId, consultaCanceladaId){
+  const h = getHorario(horarioId);
+  if (!h) return;
+
+  if (consultaCanceladaId) {
+    const consultaAtual = state.consultas.find(c => c.id === consultaCanceladaId);
+    if (consultaAtual) consultaAtual.status = 'cancelada';
+  }
+
+  if (h.fila.length > 0) {
+    const proximoId = h.fila.shift();
+    h.pacienteId = proximoId;
+    h.status = 'ocupado';
+
+    const consultaFila = state.consultas.find(c => c.horarioId === horarioId && c.pacienteId === proximoId && c.status === 'fila');
+    if (consultaFila) consultaFila.status = 'confirmada';
+
+    notificar(proximoId, 'promocao',
+      `Uma vaga foi liberada. Você foi promovido(a) da fila para a consulta de ${formatarDataCurta(h.data)} às ${h.hora}.`);
+  } else {
+    h.pacienteId = null;
+    h.status = 'livre';
+  }
+}
+
+function encerrarFilaDoHorario(h){
+  if(!h) return;
+  (h.fila||[]).forEach(pid=>{
+    const cf=state.consultas.find(c=>c.horarioId===h.id && c.pacienteId===pid && c.status==='fila');
+    if(cf) cf.status='fila_encerrada';
+    const prof=getProfissional(h.profissionalId);
+    notificar(pid,'fila_encerrada',`A consulta de ${h.hora} em ${formatarDataCurta(h.data)} já foi encerrada.`);
+  });
+  h.fila=[];
+}
+
+function registrarFaltaConsulta(consultaId){
+  const consulta=state.consultas.find(c=>c.id===consultaId);
+  if(!consulta || consulta.status!=='confirmada') return;
+  const h=getHorario(consulta.horarioId);
+  if(!h) return;
+  const pacienteId=consulta.pacienteId;
+  const prof=getProfissional(h.profissionalId);
+  consulta.status='faltou';
+  encerrarFilaDoHorario(h);
+  h.pacienteId=null;
+  h.status='concluido';
+  notificar(pacienteId,'falta',`A consulta com ${prof.nome} em ${formatarDataCurta(h.data)} às ${h.hora} foi registrada como falta.`);
+  notificar(null,'falta_profissional',`Você registrou falta de ${getPaciente(pacienteId)?.nome||'cliente'} em ${formatarDataCurta(h.data)} às ${h.hora}.`,prof.id);
+  mostrarToast('Falta registrada e consulta encerrada.');
+  render();
+}
+
+function registrarFalta(horarioId){
+  const h=getHorario(horarioId); if(!h) return;
+  const c=state.consultas.find(x=>x.horarioId===horarioId && x.status==='confirmada');
+  if(c) registrarFaltaConsulta(c.id);
+}
+
+function registrarCancelamentoProfissional(horarioId){
+  const h=getHorario(horarioId); if(!h) return;
+  const c=state.consultas.find(x=>x.horarioId===horarioId && x.status==='confirmada');
+  if(!c) return;
+  const pacienteId=c.pacienteId, prof=getProfissional(h.profissionalId);
+  liberarHorarioEPromover(horarioId,c.id);
+  notificar(pacienteId,'cancelamento',`Sua consulta com ${prof.nome} foi cancelada pelo profissional.`);
+  notificar(null,'cancelamento_profissional',`A consulta de ${getPaciente(pacienteId)?.nome||'cliente'} em ${formatarDataCurta(h.data)} às ${h.hora} foi cancelada.`,prof.id);
+  mostrarToast('Consulta cancelada.'); render();
+}
+
+function marcarConsultaDadaConsulta(consultaId){
+  const consulta=state.consultas.find(c=>c.id===consultaId);
+  if(!consulta || consulta.status!=='confirmada') return;
+  const h=getHorario(consulta.horarioId); if(!h) return;
+  const prof=getProfissional(h.profissionalId);
+  consulta.status='realizada';
+  encerrarFilaDoHorario(h);
+  h.pacienteId=null;
+  h.status='concluido';
+  notificar(consulta.pacienteId,'realizada',`Sua consulta com ${prof.nome} foi marcada como realizada.`);
+  mostrarToast('Consulta marcada como realizada.');
+  render();
+}
+
+function marcarConsultaDada(horarioId){
+  const h=getHorario(horarioId); if(!h) return;
+  const c=state.consultas.find(x=>x.horarioId===horarioId && x.status==='confirmada');
+  if(c) marcarConsultaDadaConsulta(c.id);
+}
+
+/* Cancelamento de consulta iniciado pelo paciente (fluxo confirmado por modal) */
+function abrirModalCancelamento(consultaId){
+  modalCancelamentoId = consultaId;
+  render();
+}
+function fecharModalCancelamento(){
+  modalCancelamentoId = null;
+  render();
+}
+
+function confirmarCancelamentoPaciente(){
+  const consultaId = modalCancelamentoId;
+  modalCancelamentoId = null;
+
+  const consulta = state.consultas.find(c => c.id === consultaId);
+  if (!consulta) { render(); return; }
+  if (['cancelada', 'realizada', 'fila_encerrada'].includes(consulta.status)) {
+    render();
+    return;
+  }
+
+  const h = getHorario(consulta.horarioId);
+  const prof = getProfissional(h.profissionalId);
+  if (consulta.status === 'confirmada') {
+    const regra = consultaPodeSerCancelada(consulta);
+    if (!regra.ok) { mensagemErro(regra.motivo); render(); return; }
+  }
+
+  if (consulta.status === 'fila') {
+    h.fila = h.fila.filter(pid => pid !== consulta.pacienteId);
+    consulta.status = 'cancelada';
+    if (h.fila.length === 0 && h.pacienteId) h.status = 'ocupado';
+  } else if (consulta.status === 'confirmada') {
+    liberarHorarioEPromover(h.id, consulta.id);
+  }
+
+  // O cancelamento do paciente também precisa chegar ao profissional.
+  notificar(consulta.pacienteId, 'cancelamento', `Sua consulta com ${prof.nome} foi cancelada.`);
+  notificar(null, 'cancelamento_paciente', `${getPaciente(consulta.pacienteId)?.nome || 'O paciente'} cancelou a consulta de ${formatarDataCurta(h.data)} às ${h.hora}.`, prof.id);
+
+  // Se havia fila, o profissional também é informado da promoção automática.
+  if (h.pacienteId && h.pacienteId !== consulta.pacienteId) {
+    const promovido = getPaciente(h.pacienteId);
+    notificar(null, 'promocao_profissional', `${promovido?.nome || 'Paciente'} foi promovido(a) automaticamente para ${formatarDataCurta(h.data)} às ${h.hora}.`, prof.id);
+  }
+
+  mostrarToast('Consulta cancelada e profissional notificado.');
+  render();
+}
+
+function confirmarConsultaPaciente(consultaId){
+  const c=state.consultas.find(x=>x.id===consultaId); if(!c||c.status!=='confirmada') return;
+  state.confirmacoes[c.id]={status:'confirmada',confirmadoEm:new Date().toISOString()};
+  const h=getHorario(c.horarioId), prof=getProfissional(h.profissionalId);
+  notificar(null,'cliente_confirmou',`${getPaciente(c.pacienteId)?.nome||'Cliente'} confirmou a consulta de ${formatarDataCurta(h.data)} às ${h.hora}.`,prof.id);
+  mostrarToast('Consulta confirmada.'); render();
+}
+
+function simularLembrete(consultaId){
+  const c = state.consultas.find(c => c.id === consultaId);
+  if (!c || c.status !== 'confirmada') return;
+  const h = getHorario(c.horarioId);
+  const prof = getProfissional(h.profissionalId);
+  notificar(c.pacienteId, 'lembrete',
+    `Lembrete: você tem uma consulta com ${prof.nome} em ${formatarDataCurta(h.data)} às ${h.hora}.`);
+  render();
+}
+
+
+
+let telaLoginAtiva = 'login'; // 'login' | 'cadastro'
+let tipoContaSelecionado = 'paciente'; // 'paciente' | 'profissional'
+
+function alternarTelaLogin(tela){
+  telaLoginAtiva = tela;
+  cadModalidadeSelecionada = 'presencial';
+  render();
+}
+
+function alternarTipoConta(tipo){
+  tipoContaSelecionado = tipo;
+  render();
+}
+
+function fazerLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  const senha = document.getElementById('login-senha').value;
+  
+  if (tipoContaSelecionado === 'paciente') {
+    const p = state.pacientes.find(p => p.email === email && p.senha === senha);
+    if (!p) { mensagemErro('E-mail ou senha inválidos.'); return; }
+    state.usuario = { tipo: 'paciente', id: p.id, nome: p.nome };
+    state.clinicaSelecionadaId = null;
+    state.profissionalSelecionadoId = null;
+    state.agendaAberta = false;
+    abaPaciente = 'profissionais';
+  } else {
+    const p = state.profissionais.find(p => p.email === email && p.senha === senha);
+    if (!p) { mensagemErro('E-mail ou senha inválidos.'); return; }
+    state.usuario = { tipo: 'profissional', id: p.id, nome: p.nome, profissao: p.profissao };
+  }
+  render();
+}
+
+function fazerCadastro(){
+  const nome = document.getElementById('cad-nome').value.trim();
+  const email = document.getElementById('cad-email').value.trim();
+  const senha = document.getElementById('cad-senha').value;
+  
+  if (!nome || !email || !senha) { mensagemErro('Preencha os campos obrigatórios.'); return; }
+
+  if (tipoContaSelecionado === 'paciente') {
+    if (state.pacientes.some(p => p.email === email)) { mensagemErro('E-mail já cadastrado.'); return; }
+    const novo = { id: state.proximoIdPaciente++, nome, email, senha };
+    state.pacientes.push(novo);
+    state.usuario = { tipo: 'paciente', id: novo.id, nome: novo.nome };
+    abaPaciente = 'profissionais';
+  } else {
+    const profissao = document.getElementById('cad-profissao').value.trim();
+    if (!profissao) { mensagemErro('Preencha sua profissão.'); return; }
+    const clinicaId = Number(document.getElementById('cad-clinica')?.value || '');
+    const clinicaEscolhida = getClinica(clinicaId);
+    if (!clinicaId || !clinicaEscolhida) { mensagemErro('Selecione a clínica onde você atende.'); return; }
+    if (state.profissionais.some(p => p.email === email)) { mensagemErro('E-mail já cadastrado.'); return; }
+    const especialidade = document.getElementById('cad-especialidade').value.trim();
+    const descricao = document.getElementById('cad-descricao').value.trim();
+    const modalidadeAtendimento = document.getElementById('cad-modalidade').value;
+    const localAtendimento = document.getElementById('cad-local') ? document.getElementById('cad-local').value.trim() : '';
+    const novo = {
+      id: state.proximoIdProfissional++, nome, email, senha, profissao,
+      especialidade: especialidade || profissao,
+      descricao: descricao || 'Profissional cadastrado na plataforma Fluxo.',
+      avatar: '🧑‍⚕️',
+      clinicaId: clinicaEscolhida.id,
+      modalidadeAtendimento: modalidadeAtendimento || 'presencial',
+      localAtendimento: localAtendimento || (modalidadeAtendimento !== 'online' ? clinicaEscolhida.endereco : ''),
+    };
+    state.profissionais.push(novo);
+    state.usuario = { tipo: 'profissional', id: novo.id, nome: novo.nome, profissao: novo.profissao };
+    mostrarToast(`Cadastro concluído! Você já aparece em ${clinicaEscolhida.nome} para os pacientes.`);
+  }
+  render();
+}
+
+function alternarModalidadeCadastro(v){
+  cadModalidadeSelecionada = v;
+  const localWrap = document.getElementById('cad-local-wrap');
+  if (localWrap) localWrap.style.display = (v === 'online') ? 'none' : 'block';
+}
+
+function sair(){
+  state.usuario = null;
+  state.clinicaSelecionadaId = null;
+  abaPaciente = 'profissionais';
+  notificacoesAbertas = false;
+  render();
+}
+
+
+
+function toggleNotificacoes(){
+  notificacoesAbertas = !notificacoesAbertas;
+  render();
+}
+
+function marcarNotificacaoLida(id){
+  const n = state.notificacoes.find(n => n.id === id);
+  if (n) n.lida = true;
+  render();
+}
+
+function marcarTodasNotificacoesLidas(){
+  state.notificacoes.forEach(n => { if ((state.usuario.tipo === 'paciente' ? n.pacienteId : n.profissionalId) === state.usuario.id) n.lida = true; });
+  render();
+}
+
+function iconeTipoNotificacao(tipo){
+  const mapa = {
+    confirmacao: '✅', fila: '⏳', promocao: '🎉', cancelamento: '❌',
+    lembrete: '⏰', lembrete24: '⏰', lembrete2h: '⏰', confirmacao_pendente: '⚠️', realizada: '✔️', fila_encerrada: 'ℹ️', novo_agendamento: '📌', cancelamento_profissional: '↩️', cancelamento_paciente:'❌', promocao_profissional:'🎉', alerta_faltas:'⚠️', cliente_confirmou:'✅',
+  };
+  return mapa[tipo] || '🔔';
+}
+
+function painelNotificacoes(){
+  const ehPaciente = state.usuario.tipo === 'paciente';
+  const minhas = state.notificacoes.filter(n => (ehPaciente ? n.pacienteId === state.usuario.id : n.profissionalId === state.usuario.id)).slice(0, 20);
+  return `
+    <div class="notif-panel card shadow-lg bg-[var(--surface)]">
+      <div class="flex items-center justify-between px-3 py-2 border-b border-[var(--line)]">
+        <span class="font-medium text-sm">Notificações</span>
+        <button onclick="marcarTodasNotificacoesLidas()" class="text-xs text-[var(--primary)] underline underline-offset-2">Marcar todas como lidas</button>
+      </div>
+      <div class="divide-y divide-[var(--line)]">
+        ${minhas.length ? minhas.map(n => `
+          <div class="p-3 text-sm ${n.lida ? 'bg-white' : 'bg-[var(--gold-bg)]'} cursor-pointer" onclick="marcarNotificacaoLida(${n.id})">
+            <div class="flex items-start gap-2">
+              <span>${iconeTipoNotificacao(n.tipo)}</span>
+              <div class="flex-1">
+                <p>${n.mensagem}</p>
+                <p class="text-xs text-[var(--ink-soft)] mt-1">${new Date(n.criadaEm).toLocaleString('pt-BR')}</p>
+              </div>
+              ${!n.lida ? '<span class="w-2 h-2 rounded-full bg-[var(--brick)] mt-1 flex-shrink-0"></span>' : ''}
+            </div>
+          </div>`).join('') : `<div class="p-4 text-sm text-[var(--ink-soft)]">Sem notificações por enquanto.</div>`}
+      </div>
+    </div>`;
+}
+
+
+
+let calendarioAberto = false;
+let calVisao = (() => {
+  const d = new Date(state.diaSelecionado + 'T00:00:00');
+  return { ano: d.getFullYear(), mes: d.getMonth() };
+})();
+
+function toggleCalendario(){ calendarioAberto = !calendarioAberto; render(); }
+
+document.addEventListener('click', (e) => {
+  if (!calendarioAberto) return;
+  if (!e.target.closest('[data-calendar-trigger]') && !e.target.closest('[data-calendar-popover]')) {
+    calendarioAberto = false; render();
+  }
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && calendarioAberto) { calendarioAberto = false; render(); } });
+
+function mudarMesCalendario(delta){
+  calVisao.mes += delta;
+  if (calVisao.mes < 0) { calVisao.mes = 11; calVisao.ano--; }
+  if (calVisao.mes > 11) { calVisao.mes = 0; calVisao.ano++; }
+  render();
+}
+
+function selecionarDia(iso){
+  state.diaSelecionado = iso;
+  calendarioAberto = false;
+  render();
+}
+
+function gerarGradeCalendario(filtroProfissionalId = null){
+  const { ano, mes } = calVisao;
+  const primeiroDiaSemana = new Date(ano, mes, 1).getDay();
+  const totalDias = new Date(ano, mes + 1, 0).getDate();
+  const hoje = hojeISO();
+  const nomesMes = new Date(ano, mes, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+  let celulas = '';
+  for (let i = 0; i < primeiroDiaSemana; i++) celulas += `<div class="cal-cell"></div>`;
+  for (let dia = 1; dia <= totalDias; dia++) {
+    const iso = `${ano}-${String(mes+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+    const temHorario = state.horarios.some(h => h.data === iso && (filtroProfissionalId ? h.profissionalId === filtroProfissionalId : true));
+    const bloqueado = filtroProfissionalId ? horarioBloqueado(filtroProfissionalId, iso) : false;
+    const classes = ['cal-cell'];
+    if (iso === state.diaSelecionado) classes.push('selected');
+    if (iso === hoje) classes.push('today');
+    if (bloqueado) classes.push('blocked');
+    celulas += `<div class="${classes.join(' ')}" onclick="selecionarDia('${iso}')">${dia}${bloqueado ? '<span class="cal-block">×</span>' : (temHorario ? '<span class="cal-dot"></span>' : '')}</div>`;
+  }
+
+  const diasSemana = ['D','S','T','Q','Q','S','S'].map(d => `<div class="w-9 text-center text-xs text-[var(--ink-soft)] font-medium">${d}</div>`).join('');
+
+  return `
+    <div data-calendar-popover class="calendar-popover card p-4 absolute z-20 mt-2 shadow-lg bg-[var(--surface)]">
+      <div class="flex items-center justify-between mb-3">
+        <button onclick="mudarMesCalendario(-1)" class="btn-ghost px-2 py-1 text-sm">‹</button>
+        <span class="font-display text-sm capitalize">${nomesMes} ${ano}</span>
+        <button onclick="mudarMesCalendario(1)" class="btn-ghost px-2 py-1 text-sm">›</button>
+      </div>
+      <div class="grid grid-cols-7 gap-1 mb-1">${diasSemana}</div>
+      <div class="grid grid-cols-7 gap-1">${celulas}</div>
+      <p class="text-xs text-[var(--ink-soft)] mt-3">● com horários &nbsp; <span class="text-[var(--brick)]">× bloqueado</span></p>
+    </div>`;
+}
+
+
+
+function telaLogin(){
+  const radioTipoConta = `
+    <div class="tab-row w-full mb-6" role="radiogroup" aria-label="Tipo de conta">
+      <label class="tab-btn flex-1 text-center ${tipoContaSelecionado === 'paciente' ? 'active' : ''}" style="cursor:pointer;">
+        <input type="radio" name="tipo" ${tipoContaSelecionado === 'paciente' ? 'checked' : ''} onchange="alternarTipoConta('paciente')" class="sr-only"> 👤 Cliente
+      </label>
+      <label class="tab-btn flex-1 text-center ${tipoContaSelecionado === 'profissional' ? 'active' : ''}" style="cursor:pointer;">
+        <input type="radio" name="tipo" ${tipoContaSelecionado === 'profissional' ? 'checked' : ''} onchange="alternarTipoConta('profissional')" class="sr-only"> 🩺 Profissional
+      </label>
+    </div>`;
+
+  let corpo = '';
+  if (telaLoginAtiva === 'login') {
+    corpo = `
+      <div class="space-y-3">
+        <input id="login-email" type="email" placeholder="E-mail" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm" value="${tipoContaSelecionado==='paciente'?'ana@email.com':'camila@email.com'}">
+        <input id="login-senha" type="password" placeholder="Senha" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm" value="123">
+        <button onclick="fazerLogin()" class="btn-primary w-full py-2.5 text-sm font-medium">Entrar</button>
+        <div class="text-center mt-3">
+          <button onclick="alternarTelaLogin('cadastro')" class="text-sm text-[var(--primary)] underline underline-offset-2">Não tem conta? Cadastre-se</button>
+        </div>
+      </div>`;
+  } else {
+    corpo = `
+      <div class="space-y-3">
+        <input id="cad-nome" type="text" placeholder="Nome completo" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm">
+        <input id="cad-email" type="email" placeholder="E-mail" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm">
+        <input id="cad-senha" type="password" placeholder="Senha" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm">
+        ${tipoContaSelecionado === 'profissional' ? `
+        <input id="cad-profissao" type="text" placeholder="Ex: Psicólogo, Médico..." class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm">
+        <div>
+          <select id="cad-clinica" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-white">
+            <option value="">Selecione a clínica onde você atende</option>
+            ${state.clinicas.map(c => `<option value="${c.id}">${c.icone} ${c.nome} · ${c.especialidade}</option>`).join('')}
+          </select>
+          <p class="text-xs text-[var(--ink-soft)] mt-1">Seu perfil aparecerá automaticamente para os pacientes dessa clínica.</p>
+        </div>
+        <input id="cad-especialidade" type="text" placeholder="Especialidade (opcional)" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm">
+        <textarea id="cad-descricao" placeholder="Breve descrição do atendimento (opcional)" rows="2" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm"></textarea>
+        <select id="cad-modalidade" onchange="alternarModalidadeCadastro(this.value)" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-white">
+          <option value="presencial" ${cadModalidadeSelecionada === 'presencial' ? 'selected' : ''}>Atendimento Presencial</option>
+          <option value="online" ${cadModalidadeSelecionada === 'online' ? 'selected' : ''}>Atendimento Online</option>
+          <option value="ambos" ${cadModalidadeSelecionada === 'ambos' ? 'selected' : ''}>Presencial e Online</option>
+        </select>
+        <div id="cad-local-wrap" style="display:${cadModalidadeSelecionada === 'online' ? 'none' : 'block'};">
+          <input id="cad-local" type="text" placeholder="Local de atendimento (opcional, usa o endereço da clínica se vazio)" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm">
+        </div>` : ''}
+        <button onclick="fazerCadastro()" class="btn-primary w-full py-2.5 text-sm font-medium">Criar Conta</button>
+        <div class="text-center mt-3">
+          <button onclick="alternarTelaLogin('login')" class="text-sm text-[var(--ink-soft)]">‹ Voltar para Login</button>
+        </div>
+      </div>`;
+  }
+
+  return `
+    <div class="min-h-screen flex items-center justify-center px-4 py-10">
+      <div class="w-full max-w-sm">
+        <div class="text-center mb-8">
+          <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4" style="background:linear-gradient(155deg, var(--gold-bg), #F3E3BE); box-shadow:inset 0 0 0 1px #EAD9AE;">
+            <span class="text-2xl">📅</span>
+          </div>
+          <h1 class="font-display text-4xl mb-2 text-[var(--primary-dark)]">Fluxo</h1>
+          <p class="text-sm text-[var(--ink-soft)]">Agendamentos simples e inteligentes</p>
+        </div>
+        <div class="card p-6 sm:p-7" style="box-shadow:var(--shadow-lg);">
+          <h2 class="text-lg font-semibold text-center mb-5">${telaLoginAtiva === 'login' ? 'Acesse sua conta' : 'Crie sua conta'}</h2>
+          ${radioTipoConta}
+          ${corpo}
+        </div>
+        <p class="text-center text-xs text-[var(--ink-soft)] mt-6">Feito para consultórios e profissionais autônomos.</p>
+      </div>
+    </div>`;
+}
+
+
+
+
+function selecionarClinica(id){
+  state.clinicaSelecionadaId = id;
+  state.profissionalSelecionadoId = null;
+  state.agendaAberta = false;
+  buscaProfissionalTexto = '';
+  filtroEspecialidade = 'todas';
+  filtroModalidadeProf = 'todas';
+  render();
+}
+
+function voltarParaListaClinicas(){
+  state.clinicaSelecionadaId = null;
+  state.profissionalSelecionadoId = null;
+  state.agendaAberta = false;
+  render();
+}
+
+function selecionarProfissional(id){
+  state.profissionalSelecionadoId = id;
+  state.agendaAberta = false;
+  render();
+}
+
+function voltarParaListaProfissionais(){
+  state.profissionalSelecionadoId = null;
+  state.agendaAberta = false;
+  render();
+}
+
+function voltarParaPerfilProfissional(){
+  state.agendaAberta = false;
+  render();
+}
+
+function abrirAgendaProfissional(){
+  state.agendaAberta = true;
+  state.diaSelecionado = hojeISO(1); // reset para amanhã para ter dados
+  render();
+}
+
+function irParaAba(aba){
+  abaPaciente = aba;
+  if (aba === 'profissionais') {
+    state.clinicaSelecionadaId = null;
+    state.profissionalSelecionadoId = null;
+    state.agendaAberta = false;
+  }
+  notificacoesAbertas = false;
+  render();
+}
+
+
+
+function profissionaisFiltrados(){
+  const termo = buscaProfissionalTexto.trim().toLowerCase();
+  return state.profissionais.filter(p => {
+    if (p.clinicaId !== state.clinicaSelecionadaId) return false;
+
+    const textoBusca = `${p.nome} ${p.profissao} ${p.especialidade || ''}`.toLowerCase();
+    const passaTexto = !termo || textoBusca.includes(termo);
+
+    const especialidadeProf = p.especialidade || p.profissao;
+    const passaEspecialidade = filtroEspecialidade === 'todas' || especialidadeProf === filtroEspecialidade;
+
+    const modalidadeProf = p.modalidadeAtendimento || 'presencial';
+    const passaModalidade = filtroModalidadeProf === 'todas'
+      || modalidadeProf === filtroModalidadeProf
+      || modalidadeProf === 'ambos';
+
+    return passaTexto && passaEspecialidade && passaModalidade;
+  });
+}
+
+function cartaoClinica(c){
+  const totalMedicos = state.profissionais.filter(p => p.clinicaId === c.id).length;
+  const mostrarConvenios = c.convenios.slice(0, 4);
+  const restante = c.convenios.length - mostrarConvenios.length;
+  return `
+    <div class="card p-5 hover:border-[var(--primary)] cursor-pointer transition flex gap-4" onclick="selecionarClinica(${c.id})">
+      <div class="clinica-icon" style="background:linear-gradient(155deg, var(--gold-bg), #F3E3BE); box-shadow:inset 0 0 0 1px #EAD9AE;">${c.icone}</div>
+      <div class="flex-1 min-w-0">
+        <h3 class="font-display text-xl text-[var(--primary-dark)]">${c.nome}</h3>
+        <p class="text-sm text-[var(--ink-soft)] mt-0.5">${c.especialidade} · ${totalMedicos} ${totalMedicos===1?'profissional':'profissionais'}</p>
+        <p class="text-xs mt-2 text-[var(--ink-soft)]">📍 ${c.endereco}</p>
+        <div class="flex flex-wrap gap-1.5 mt-3">
+          ${mostrarConvenios.map(nome => chipConvenio(nome)).join('')}
+          ${restante > 0 ? `<span class="convenio-chip">+${restante}</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderCardsClinicas(){
+  if (!state.clinicas.length) {
+    return `<div class="card p-8 text-center text-sm text-[var(--ink-soft)] bg-white">Nenhuma clínica cadastrada.</div>`;
+  }
+  return `<div class="grid md:grid-cols-2 gap-4">${state.clinicas.map(c => cartaoClinica(c)).join('')}</div>`;
+}
+
+function cartaoProfissional(p){
+  const modalidade = p.modalidadeAtendimento || 'presencial';
+  const modalidadeTexto = modalidade === 'ambos' ? '💻 Online · 📍 Presencial'
+    : (modalidade === 'online' ? '💻 Online' : '📍 Presencial');
+  return `
+    <div class="card p-5 hover:border-[var(--primary)] cursor-pointer transition flex gap-4" onclick="selecionarProfissional(${p.id})">
+      <div class="avatar-circle">${p.avatar || '🧑‍⚕️'}</div>
+      <div class="flex-1">
+        <h3 class="font-display text-xl text-[var(--primary-dark)]">${p.nome}</h3>
+        <p class="text-sm text-[var(--ink-soft)] mt-0.5">${p.especialidade || p.profissao}</p>
+        <p class="text-xs mt-2 text-[var(--ink-soft)]">${modalidadeTexto}</p>
+      </div>
+    </div>`;
+}
+
+function renderCardsProfissionais(){
+  const lista = profissionaisFiltrados();
+  if (!lista.length) {
+    return `<div class="card p-8 text-center text-sm text-[var(--ink-soft)] bg-white">Nenhum profissional encontrado.</div>`;
+  }
+  return `<div class="grid md:grid-cols-2 gap-4">${lista.map(p => cartaoProfissional(p)).join('')}</div>`;
+}
+
+function onBuscaProfissionalInput(valor){
+  buscaProfissionalTexto = valor;
+  const alvo = document.getElementById('lista-profissionais');
+  if (alvo) alvo.innerHTML = renderCardsProfissionais();
+}
+function onFiltroEspecialidadeChange(valor){
+  filtroEspecialidade = valor;
+  const alvo = document.getElementById('lista-profissionais');
+  if (alvo) alvo.innerHTML = renderCardsProfissionais();
+}
+function onFiltroModalidadeChange(valor){
+  filtroModalidadeProf = valor;
+  const alvo = document.getElementById('lista-profissionais');
+  if (alvo) alvo.innerHTML = renderCardsProfissionais();
+}
+
+function telaPacienteListaClinicas(){
+  return `
+    ${barraNavegacao()}
+    <div class="max-w-4xl mx-auto px-4 py-8">
+      <h2 class="font-display text-2xl mb-1">Escolha a Clínica</h2>
+      <p class="text-sm text-[var(--ink-soft)] mb-6">Selecione a clínica para ver os médicos disponíveis e os convênios aceitos.</p>
+      ${renderCardsClinicas()}
+    </div>`;
+}
+
+function telaPacienteListaProfissionais(){
+  const clinica = getClinica(state.clinicaSelecionadaId);
+  if (!clinica) return telaPacienteListaClinicas();
+  const especialidades = [...new Set(state.profissionais.filter(p => p.clinicaId === clinica.id).map(p => p.especialidade || p.profissao))];
+  return `
+    ${barraNavegacao()}
+    <div class="max-w-4xl mx-auto px-4 py-8">
+      <button onclick="voltarParaListaClinicas()" class="text-sm text-[var(--primary)] underline mb-4 block">‹ Voltar para clínicas</button>
+
+      <div class="card p-5 bg-white flex gap-4 mb-6">
+        <div class="clinica-icon" style="background:linear-gradient(155deg, var(--gold-bg), #F3E3BE); box-shadow:inset 0 0 0 1px #EAD9AE;">${clinica.icone}</div>
+        <div class="flex-1 min-w-0">
+          <h2 class="font-display text-2xl text-[var(--primary-dark)]">${clinica.nome}</h2>
+          <p class="text-sm text-[var(--ink-soft)] mt-0.5">${clinica.especialidade}</p>
+          <p class="text-xs mt-2 text-[var(--ink-soft)]">📍 ${clinica.endereco}</p>
+          <div class="mt-3">
+            <p class="text-xs uppercase tracking-wide text-[var(--ink-soft)] font-medium mb-1.5">Convênios aceitos</p>
+            <div class="flex flex-wrap gap-1.5">${clinica.convenios.map(nome => chipConvenio(nome)).join('')}</div>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="font-medium text-[var(--ink)] mb-3">Médicos de ${clinica.nome}</h3>
+
+      <div class="card p-4 mb-5 bg-white grid sm:grid-cols-3 gap-3">
+        <input id="busca-profissional" type="text" placeholder="🔍 Buscar profissional..." value="${buscaProfissionalTexto}"
+          oninput="onBuscaProfissionalInput(this.value)"
+          class="border border-[var(--line)] rounded-lg px-3 py-2 text-sm">
+        <select onchange="onFiltroEspecialidadeChange(this.value)" class="border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-white">
+          <option value="todas" ${filtroEspecialidade === 'todas' ? 'selected' : ''}>Especialidade: Todas</option>
+          ${especialidades.map(e => `<option value="${e}" ${filtroEspecialidade === e ? 'selected' : ''}>${e}</option>`).join('')}
+        </select>
+        <select onchange="onFiltroModalidadeChange(this.value)" class="border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-white">
+          <option value="todas" ${filtroModalidadeProf === 'todas' ? 'selected' : ''}>Modalidade: Todas</option>
+          <option value="presencial" ${filtroModalidadeProf === 'presencial' ? 'selected' : ''}>Presencial</option>
+          <option value="online" ${filtroModalidadeProf === 'online' ? 'selected' : ''}>Online</option>
+        </select>
+      </div>
+
+      <div id="lista-profissionais">${renderCardsProfissionais()}</div>
+    </div>`;
+}
+
+function telaPacientePerfil(){
+  const p = getProfissional(state.profissionalSelecionadoId);
+  const clinica = getClinica(p.clinicaId);
+  const modalidade = p.modalidadeAtendimento || 'presencial';
+  return `
+    ${barraNavegacao()}
+    <div class="max-w-2xl mx-auto px-4 py-8">
+      <button onclick="voltarParaListaProfissionais()" class="text-sm text-[var(--primary)] underline mb-4 block">‹ Voltar para ${clinica ? clinica.nome : 'médicos'}</button>
+
+      <div class="card p-6 bg-white">
+        <div class="flex gap-4 items-start">
+          <div class="avatar-circle" style="width:76px;height:76px;font-size:2.1rem;">${p.avatar || '🧑‍⚕️'}</div>
+          <div>
+            <h2 class="font-display text-2xl text-[var(--primary-dark)]">${p.nome}</h2>
+            <p class="text-sm text-[var(--ink-soft)]">${p.profissao}</p>
+            ${clinica ? `<p class="text-xs text-[var(--ink-soft)] mt-1">${clinica.icone} ${clinica.nome}</p>` : ''}
+          </div>
+        </div>
+
+        <div class="mt-5 space-y-4">
+          <div>
+            <h4 class="text-xs uppercase tracking-wide text-[var(--ink-soft)] font-medium mb-1">Especialidade</h4>
+            <p class="text-sm">${p.especialidade || p.profissao}</p>
+          </div>
+          <div>
+            <h4 class="text-xs uppercase tracking-wide text-[var(--ink-soft)] font-medium mb-1">Descrição</h4>
+            <p class="text-sm">${p.descricao || 'Profissional cadastrado na plataforma Fluxo.'}</p>
+          </div>
+          <div>
+            <h4 class="text-xs uppercase tracking-wide text-[var(--ink-soft)] font-medium mb-1">Modalidade</h4>
+            <div class="flex gap-2 text-sm">
+              ${modalidade !== 'presencial' ? `<span class="badge badge-ocupado">💻 Online</span>` : ''}
+              ${modalidade !== 'online' ? `<span class="badge badge-livre">📍 Presencial</span>` : ''}
+            </div>
+          </div>
+          ${modalidade !== 'online' && p.localAtendimento ? `
+          <div>
+            <h4 class="text-xs uppercase tracking-wide text-[var(--ink-soft)] font-medium mb-1">Local de atendimento</h4>
+            <p class="text-sm">📍 ${p.localAtendimento}</p>
+          </div>` : ''}
+          ${clinica ? `
+          <div>
+            <h4 class="text-xs uppercase tracking-wide text-[var(--ink-soft)] font-medium mb-1">Convênios aceitos</h4>
+            <div class="flex flex-wrap gap-1.5">${clinica.convenios.map(nome => chipConvenio(nome)).join('')}</div>
+          </div>` : ''}
+        </div>
+
+        <button onclick="abrirAgendaProfissional()" class="btn-primary w-full py-2.5 text-sm font-medium mt-6">Ver agenda</button>
+      </div>
+    </div>`;
+}
+
+function telaPacienteAgenda(){
+  const prof = getProfissional(state.profissionalSelecionadoId);
+
+  const horariosDoDia = state.horarios
+    .filter(h => h.profissionalId === prof.id && h.data === state.diaSelecionado)
+    .sort((a,b) => a.hora.localeCompare(b.hora));
+
+  return `
+    ${barraNavegacao()}
+    <div class="max-w-3xl mx-auto px-4 py-6 space-y-5">
+
+      <button onclick="voltarParaPerfilProfissional()" class="text-sm text-[var(--primary)] underline mb-2 block">‹ Voltar para o perfil de ${prof.nome}</button>
+
+      <div class="flex items-center justify-between bg-[var(--surface)] p-4 rounded-xl border border-[var(--line)] shadow-sm">
+        <div>
+          <h2 class="font-display text-2xl">${prof.nome}</h2>
+          <p class="text-sm text-[var(--ink-soft)]">${prof.especialidade || prof.profissao}</p>
+        </div>
+        <div class="relative">
+          <button data-calendar-trigger onclick="toggleCalendario()" class="btn-primary px-4 py-2 flex items-center gap-2 text-sm">
+            <span>📅</span> Escolher Data
+          </button>
+          ${calendarioAberto ? `<div style="right:0;">${gerarGradeCalendario(prof.id)}</div>` : ''}
+        </div>
+      </div>
+
+      <div>
+        <h3 class="font-medium text-[var(--ink)] mb-3 border-b border-[var(--line)] pb-2">Horários para ${formatarDataCompleta(state.diaSelecionado)}</h3>
+        <div class="space-y-3">
+          ${horariosDoDia.length ? horariosDoDia.map(h => cartaoHorario(h, 'paciente')).join('') : `<div class="card p-7 text-center bg-white"><div class="text-2xl mb-2">🗓️</div><h4 class="font-display text-lg">Nenhum horário neste dia</h4><p class="text-sm text-[var(--ink-soft)] mt-1">Escolha outra data no calendário para encontrar horários disponíveis.</p><button onclick="toggleCalendario()" class="btn-ghost px-4 py-2 text-sm mt-4">Escolher outra data</button></div>`}
+        </div>
+      </div>
+    </div>`;
+}
+
+
+
+function linhaConsultaPaciente(c, permitirCancelar){
+  const statusLabel = {
+    confirmada: ['Confirmada', 'badge-ocupado'],
+    fila: ['Na fila', 'badge-lotado'],
+    cancelada: ['Cancelada', 'badge-concluido'],
+    realizada: ['Realizada', 'badge-livre'],
+    fila_encerrada: ['Fila encerrada', 'badge-concluido'],
+  };
+  const prof = getProfissional(c.h.profissionalId);
+  const [label, classe] = statusLabel[c.status] || [c.status, ''];
+  return `
+    <div class="card p-4 bg-white flex items-center justify-between gap-3 flex-wrap">
+      <div>
+        <div class="font-medium">${prof.nome}</div>
+        <div class="text-xs text-[var(--ink-soft)]">${prof.especialidade || prof.profissao}</div>
+        <div class="text-sm text-[var(--ink-soft)] tabular mt-1">${formatarDataCurta(c.h.data)} · ${c.h.hora} · ${c.h.modalidade === 'online' ? '💻 Online' : '📍 Presencial'}</div>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap justify-end">
+        <span class="badge ${classe}">${label}</span>
+        ${c.status === 'confirmada' ? `<button onclick="abrirReagendamento(${c.id})" class="btn-ghost px-3 py-1.5 text-xs font-medium">🔄 Reagendar</button><button onclick="simularLembrete(${c.id})" class="btn-ghost px-3 py-1.5 text-xs font-medium">⏰ Lembrete</button>${state.confirmacoes[c.id]?.status==='pendente' ? `<button onclick="confirmarConsultaPaciente(${c.id})" class="btn-primary px-3 py-1.5 text-xs font-medium">Confirmar consulta</button>` : ''}` : ''}
+        ${permitirCancelar ? `<button onclick="abrirModalCancelamento(${c.id})" class="btn-brick px-3 py-1.5 text-xs font-medium">Cancelar consulta</button>` : ''}
+      </div>
+    </div>`;
+}
+
+function modalConfirmarCancelamento(){
+  return `
+    <div class="modal-overlay">
+      <div class="card bg-white p-6 max-w-sm w-full">
+        <h3 class="font-display text-lg mb-2">Cancelar consulta</h3>
+        <p class="text-sm text-[var(--ink)]">Tem certeza que deseja cancelar esta consulta?</p>
+        <p class="text-sm text-[var(--ink-soft)] mt-2">Se houver pacientes na fila de espera, o próximo paciente poderá assumir automaticamente este horário.</p>
+        <div class="flex gap-3 mt-5">
+          <button onclick="fecharModalCancelamento()" class="btn-ghost flex-1 py-2 text-sm font-medium">Voltar</button>
+          <button onclick="confirmarCancelamentoPaciente()" class="btn-brick flex-1 py-2 text-sm font-medium">Confirmar cancelamento</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function telaPacienteConsultas(){
+  const minhas = state.consultas
+    .filter(c => c.pacienteId === state.usuario.id)
+    .map(c => ({ ...c, h: getHorario(c.horarioId) }))
+    .filter(c => c.h)
+    .sort((a,b) => (a.h.data + a.h.hora).localeCompare(b.h.data + b.h.hora));
+
+  const proximas = minhas.filter(c => ['confirmada', 'fila'].includes(c.status));
+  const historico = minhas.filter(c => ['realizada', 'cancelada', 'fila_encerrada'].includes(c.status)).reverse();
+
+  return `
+    ${barraNavegacao()}
+    <div class="max-w-3xl mx-auto px-4 py-8 space-y-8">
+      <h2 class="font-display text-2xl">Minhas Consultas</h2>
+
+      <div>
+        <h3 class="font-medium text-[var(--ink)] mb-3 border-b border-[var(--line)] pb-2">Próximas consultas</h3>
+        <div class="space-y-3">
+          ${proximas.length ? proximas.map(c => linhaConsultaPaciente(c, true)).join('') : `<div class="card p-6 text-center text-sm text-[var(--ink-soft)] bg-white">Nenhuma consulta agendada.</div>`}
+        </div>
+      </div>
+
+      <div>
+        <h3 class="font-medium text-[var(--ink)] mb-3 border-b border-[var(--line)] pb-2">Histórico</h3>
+        <div class="space-y-3">
+          ${historico.length ? historico.map(c => linhaConsultaPaciente(c, false)).join('') : `<div class="card p-6 text-center text-sm text-[var(--ink-soft)] bg-white">Nenhum registro no histórico.</div>`}
+        </div>
+      </div>
+
+
+    </div>
+    ${modalCancelamentoId ? modalConfirmarCancelamento() : ''}`;
+}
+
+function telaPaciente(){
+  if (abaPaciente === 'consultas') return telaPacienteConsultas();
+  if (state.profissionalSelecionadoId && state.agendaAberta) return telaPacienteAgenda();
+  if (state.profissionalSelecionadoId && !state.agendaAberta) return telaPacientePerfil();
+  if (state.clinicaSelecionadaId) return telaPacienteListaProfissionais();
+  return telaPacienteListaClinicas();
+}
+
+
+
+function salvarConfiguracoesAgenda(){
+  state.configuracoes.lembrete24h=!!document.getElementById('cfg-24h')?.checked;
+  state.configuracoes.lembrete2h=!!document.getElementById('cfg-2h')?.checked;
+  state.configuracoes.confirmacaoHoras=Math.max(1,Number(document.getElementById('cfg-conf')?.value||3));
+  state.configuracoes.cancelamentoHoras=Math.max(0,Number(document.getElementById('cfg-canc')?.value||4));
+  mostrarToast('Regras da agenda atualizadas.'); render();
+}
+
+function telaProfissional(){
+  const hoje = hojeISO();
+  const horariosHoje = state.horarios
+    .filter(h => h.profissionalId === state.usuario.id && h.data === hoje)
+    .sort((a,b) => a.hora.localeCompare(b.hora));
+  const proximosHoje = horariosHoje.filter(h => !consultaJaPassou(h));
+
+  const confirmadasHoje = horariosHoje.filter(h => h.pacienteId).length;
+  const emFilaHoje = horariosHoje.reduce((soma, h) => soma + h.fila.length, 0);
+  const livresHoje = horariosHoje.filter(h => h.status === 'livre').length;
+
+  const horariosDoDia = state.horarios
+    .filter(h => h.profissionalId === state.usuario.id && h.data === state.diaSelecionado)
+    .sort((a,b) => a.hora.localeCompare(b.hora));
+
+  const primeiroNome = state.usuario.nome.split(' ')[0];
+  // Fonte principal das consultas do profissional: relaciona a consulta ao horário e ao profissional.
+  // Isso evita que uma consulta desapareça do painel caso o status visual do horário tenha sido alterado.
+  const consultasDoProfissional = state.consultas
+    .map(c => ({ consulta: c, horario: getHorario(c.horarioId) }))
+    .filter(x => x.horario && Number(x.horario.profissionalId) === Number(state.usuario.id))
+    .sort((a,b) => (a.horario.data+a.horario.hora).localeCompare(b.horario.data+b.horario.hora));
+  const futuras = consultasDoProfissional.filter(x => x.consulta.status === 'confirmada' && !consultaJaPassou(x.horario));
+  const pendentesRegistro = consultasDoProfissional.filter(x => x.consulta.status === 'confirmada');
+  const canceladasRecentes = consultasDoProfissional.filter(x => x.consulta.status === 'cancelada').slice().reverse().slice(0,8);
+  const encerradasRecentes = consultasDoProfissional.filter(x => ['realizada','faltou'].includes(x.consulta.status)).slice().reverse().slice(0,8);
+
+  return `
+    ${barraNavegacao()}
+    <div class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+
+      <div>
+        <h2 class="font-display text-2xl">Olá, ${primeiroNome} 👋</h2>
+        <p class="text-sm text-[var(--ink-soft)]">Aqui está um resumo da sua agenda de hoje.</p>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="stat-card">
+          <div class="stat-num">${horariosHoje.length}</div>
+          <div class="text-xs text-[var(--ink-soft)] mt-1">Consultas hoje</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">${confirmadasHoje}</div>
+          <div class="text-xs text-[var(--ink-soft)] mt-1">Confirmadas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">${emFilaHoje}</div>
+          <div class="text-xs text-[var(--ink-soft)] mt-1">Em fila</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">${livresHoje}</div>
+          <div class="text-xs text-[var(--ink-soft)] mt-1">Horários livres</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="flex items-center justify-between gap-3 mb-3 border-b border-[var(--line)] pb-2">
+          <div>
+            <h3 class="font-medium text-[var(--ink)]">Próximas consultas</h3>
+            <p class="text-xs text-[var(--ink-soft)] mt-1">Todos os atendimentos futuros já agendados para você.</p>
+          </div>
+          <span class="badge badge-ocupado">${futuras.length}</span>
+        </div>
+        <div class="card bg-white divide-y divide-[var(--line)]">
+          ${futuras.length ? futuras.map(x => {
+            const h=x.horario, paciente=getPaciente(x.consulta.pacienteId);
+            return `<div class="p-4 flex items-center justify-between text-sm gap-3 flex-wrap">
+              <div class="min-w-[210px]">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-medium">${formatarDataCurta(h.data)}</span>
+                  <span class="font-display text-lg tabular text-[var(--primary-dark)]">${h.hora}</span>
+                </div>
+                <p class="text-sm mt-1">Paciente: <strong>${escaparHtml(paciente?.nome || 'Paciente')}</strong></p>
+              </div>
+              <span class="text-xs">${h.modalidade === 'online' ? '💻 Online' : '📍 Presencial'}</span>
+              <span class="badge badge-ocupado">Confirmada</span>
+            </div>`;
+          }).join('') : `<div class="p-5 text-sm text-[var(--ink-soft)]">Nenhuma consulta futura agendada.</div>`}
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <div class="flex items-center justify-between gap-3 border-b border-[var(--line)] pb-2">
+          <div>
+            <h3 class="font-medium text-[var(--ink)]">Gerenciar consultas</h3>
+            <p class="text-xs text-[var(--ink-soft)] mt-1">Todas as consultas confirmadas ficam aqui até você registrar o resultado.</p>
+          </div>
+          <span class="badge badge-ocupado">${pendentesRegistro.length}</span>
+        </div>
+        <div class="space-y-3">
+          ${pendentesRegistro.length ? pendentesRegistro.map(x => {
+            const h=x.horario, c=x.consulta, paciente=getPaciente(c.pacienteId), passada=consultaJaPassou(h);
+            return `<div class="card bg-white p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-display text-lg text-[var(--primary-dark)]">${formatarDataCurta(h.data)}</span>
+                  <span class="font-medium tabular">${h.hora}</span>
+                  <span class="text-xs px-2 py-0.5 rounded-md bg-[var(--bg)]">${h.modalidade==='online'?'💻 Online':'📍 Presencial'}</span>
+                  ${passada?'<span class="badge badge-concluido">Aguardando registro</span>':'<span class="badge badge-ocupado">Agendada</span>'}
+                </div>
+                <p class="text-sm mt-1">Paciente: <strong>${escaparHtml(paciente?.nome||'Paciente')}</strong></p>
+              </div>
+              <div class="w-full sm:w-auto">
+                <textarea id="nota-${c.id}" class="w-full border border-[var(--line)] rounded-lg p-2 text-xs mb-2" rows="2" placeholder="Anotação privada..."></textarea>
+                <div class="flex gap-2 flex-wrap sm:justify-end">
+                <button onclick="salvarAnotacaoPrivada(${c.id})" class="btn-ghost px-3 py-2 text-xs font-medium">📝 Salvar nota</button>
+                
+                <button onclick="marcarConsultaDadaConsulta(${c.id})" class="btn-primary px-3 py-2 text-xs font-medium">✓ Compareceu</button>
+                <button onclick="registrarFaltaConsulta(${c.id})" class="btn-brick px-3 py-2 text-xs font-medium">Faltou</button>
+                </div></div>
+            </div>`;
+          }).join('') : `<div class="card bg-white p-5 text-sm text-[var(--ink-soft)]">Nenhuma consulta confirmada pendente. Quando um paciente agendar com você, ela aparecerá aqui.</div>`}
+        </div>
+
+        <div class="mt-5">
+          <div class="flex items-center justify-between border-b border-[var(--line)] pb-2 mb-3">
+            <div><h4 class="text-sm font-medium">Histórico de atendimentos</h4><p class="text-xs text-[var(--ink-soft)] mt-1">Resultado dos atendimentos já encerrados.</p></div>
+          </div>
+          ${encerradasRecentes.length ? encerradasRecentes.map(x=>{const h=x.horario,c=x.consulta,p=getPaciente(c.pacienteId);return `<div class="card bg-white p-3 flex items-center justify-between gap-3 mb-2"><div><div class="text-sm font-medium">${escaparHtml(p?.nome||'Paciente')}</div><div class="text-xs text-[var(--ink-soft)]">${formatarDataCurta(h.data)} · ${h.hora}</div></div><div class="text-right"><span class="badge ${c.status==='realizada'?'badge-livre':'badge-lotado'}">${c.status==='realizada'?'Realizada':'Faltou'}</span>${(state.anotacoesPrivadas[c.id]||[]).slice(-1).map(n=>`<div class="text-[11px] text-[var(--ink-soft)] mt-1 max-w-[260px]">📝 ${escaparHtml(n.texto)}</div>`).join('')}</div></div>`}).join('') : `<div class="card bg-white p-4 text-sm text-[var(--ink-soft)]">Nenhum atendimento encerrado ainda.</div>`}
+        </div>
+
+        <div class="mt-5">
+          <div class="flex items-center justify-between border-b border-[var(--line)] pb-2 mb-3">
+            <div><h4 class="text-sm font-medium">Pacientes e anotações privadas</h4><p class="text-xs text-[var(--ink-soft)] mt-1">Consulte aqui todas as observações que você salvou. Elas são privadas e não aparecem para o paciente.</p></div>
+          </div>
+          ${(()=>{
+            const notasPorPaciente={};
+            Object.entries(state.anotacoesPrivadas||{}).forEach(([consultaId,notas])=>{
+              const c=state.consultas.find(x=>String(x.id)===String(consultaId));
+              if(!c || !Array.isArray(notas)) return;
+              const h=getHorario(c.horarioId);
+              if(!h || h.profissionalId!==state.usuario.id) return;
+              const p=getPaciente(c.pacienteId);
+              if(!p) return;
+              if(!notasPorPaciente[p.id]) notasPorPaciente[p.id]={paciente:p,notas:[]};
+              notas.filter(n=>n.profissionalId===state.usuario.id).forEach(n=>notasPorPaciente[p.id].notas.push({...n,consulta:c,horario:h}));
+            });
+            const grupos=Object.values(notasPorPaciente).sort((a,b)=>a.paciente.nome.localeCompare(b.paciente.nome));
+            return grupos.length ? grupos.map(g=>`<div class="card bg-white p-4 mb-3">
+              <div class="flex items-center justify-between gap-3 flex-wrap">
+                <div><div class="font-medium">${escaparHtml(g.paciente.nome)}</div><div class="text-xs text-[var(--ink-soft)]">${g.notas.length} ${g.notas.length===1?'anotação privada':'anotações privadas'}</div></div>
+                <span class="badge badge-ocupado">Privado</span>
+              </div>
+              <div class="mt-3 space-y-2">${g.notas.sort((a,b)=>new Date(b.criadoEm)-new Date(a.criadoEm)).map(n=>`<div class="rounded-lg bg-[var(--bg)] border border-[var(--line)] p-3">
+                <div class="text-[11px] text-[var(--ink-soft)] mb-1">${formatarDataCurta(n.horario.data)} · ${n.horario.hora} · Consulta</div>
+                <div class="text-sm leading-relaxed">${escaparHtml(n.texto)}</div>
+              </div>`).join('')}</div>
+            </div>`).join('') : `<div class="card bg-white p-4 text-sm text-[var(--ink-soft)]">Você ainda não salvou nenhuma anotação privada. As observações adicionadas em uma consulta aparecerão aqui.</div>`;
+          })()}
+        </div>
+
+        <div class="mt-5">
+          <div class="flex items-center justify-between border-b border-[var(--line)] pb-2 mb-3"><div><h4 class="text-sm font-medium">Cancelamentos recentes</h4><p class="text-xs text-[var(--ink-soft)] mt-1">Nada é apagado: cancelamentos continuam registrados.</p></div></div>
+          ${canceladasRecentes.length ? canceladasRecentes.map(c=>{const p=getPaciente(c.consulta.pacienteId);return `<div class="card bg-white p-3 flex items-center justify-between gap-3 mb-2"><div><div class="text-sm font-medium">${escaparHtml(p?.nome||'Paciente')}</div><div class="text-xs text-[var(--ink-soft)]">${formatarDataCurta(c.horario.data)} · ${c.horario.hora} · ${c.horario.modalidade==='online'?'💻 Online':'📍 Presencial'}</div></div><span class="badge badge-concluido">Cancelada</span></div>`}).join('') : `<div class="card bg-white p-4 text-sm text-[var(--ink-soft)]">Nenhum cancelamento recente.</div>`}
+        </div>
+      </div>
+
+      <div class="grid lg:grid-cols-3 gap-4">
+        <div class="card p-5 bg-white lg:col-span-2">
+          <h3 class="font-medium mb-1">Lembretes e confirmação</h3>
+          <p class="text-xs text-[var(--ink-soft)] mb-4">Configure quando o cliente recebe lembretes e quando a confirmação passa a ser obrigatória.</p>
+          <div class="grid sm:grid-cols-2 gap-3">
+            <label class="flex items-center gap-2 text-sm"><input id="cfg-24h" type="checkbox" ${state.configuracoes.lembrete24h?'checked':''}> Lembrete 24h antes</label>
+            <label class="flex items-center gap-2 text-sm"><input id="cfg-2h" type="checkbox" ${state.configuracoes.lembrete2h?'checked':''}> Lembrete 2h antes</label>
+            <label class="text-sm">Confirmação obrigatória com <input id="cfg-conf" type="number" min="1" max="48" value="${state.configuracoes.confirmacaoHoras}" class="w-16 border rounded px-2 py-1"> h de antecedência</label>
+            <label class="text-sm">Cancelamento permitido até <input id="cfg-canc" type="number" min="0" max="72" value="${state.configuracoes.cancelamentoHoras}" class="w-16 border rounded px-2 py-1"> h antes</label>
+          </div>
+          <button onclick="salvarConfiguracoesAgenda()" class="btn-primary px-4 py-2 text-sm mt-4">Salvar regras</button>
+        </div>
+      </div>
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="md:col-span-2 space-y-5">
+
+          <div class="flex items-center justify-between bg-[var(--surface)] p-4 rounded-xl border border-[var(--line)] shadow-sm">
+            <div>
+              <h2 class="font-display text-2xl">Sua Agenda</h2>
+              <p class="text-sm text-[var(--ink-soft)] capitalize">${formatarDataCompleta(state.diaSelecionado)}</p>
+            </div>
+            <div class="relative">
+              <button data-calendar-trigger onclick="toggleCalendario()" class="btn-primary px-4 py-2 flex items-center gap-2 text-sm">
+                <span>📅</span> Gerenciar Data
+              </button>
+              ${calendarioAberto ? `<div style="right:0;">${gerarGradeCalendario(state.usuario.id)}</div>` : ''}
+            </div>
+          </div>
+
+          <div class="grid lg:grid-cols-2 gap-4">
+            <div class="card p-5 bg-white">
+              <div class="flex items-start justify-between gap-3 mb-4">
+                <div><h3 class="font-medium mb-1">Horário recorrente</h3><p class="text-xs text-[var(--ink-soft)]">Escolha um período e os dias da semana. O sistema cria os horários automaticamente.</p></div>
+                <span class="text-xs rounded-full px-2 py-1 bg-[var(--gold-bg)] text-[var(--primary-dark)]">Automático</span>
+              </div>
+              <div class="grid grid-cols-2 gap-3 mb-4">
+                <div><label class="text-xs text-[var(--ink-soft)] block mb-1">Começa em</label><input id="rec-inicio" type="date" value="${state.diaSelecionado}" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)]"></div>
+                <div><label class="text-xs text-[var(--ink-soft)] block mb-1">Termina em</label><input id="rec-fim" type="date" value="${adicionarDiasISO(state.diaSelecionado,30)}" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)]"></div>
+              </div>
+              <div class="mb-4">
+                <div class="flex items-center justify-between mb-2"><label class="text-xs text-[var(--ink-soft)]">Repetir em</label><div class="flex gap-1"><button type="button" onclick="selecionarTodosDiasRecorrencia('uteis')" class="text-[11px] px-2 py-1 rounded-md border border-[var(--line)]">Seg–Sex</button><button type="button" onclick="selecionarTodosDiasRecorrencia('todos')" class="text-[11px] px-2 py-1 rounded-md border border-[var(--line)]">Todos</button></div></div>
+                <div class="grid grid-cols-7 gap-1.5">
+                  ${[['0','Dom'],['1','Seg'],['2','Ter'],['3','Qua'],['4','Qui'],['5','Sex'],['6','Sáb']].map(([v,l])=>`<label class="rec-dia-wrap cursor-pointer text-center"><input class="rec-dia" type="checkbox" value="${v}"><span class="flex h-9 items-center justify-center rounded-lg border border-[var(--line)] text-[11px] font-medium">${l}</span></label>`).join('')}
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-3 mb-3">
+                <div><label class="text-xs text-[var(--ink-soft)] block mb-1">Horário</label><input id="rec-hora" type="time" value="09:00" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)]"></div>
+                <div><label class="text-xs text-[var(--ink-soft)] block mb-1">Modalidade</label><select id="rec-modalidade" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)]"><option value="presencial">Presencial</option><option value="online">Online</option></select></div>
+              </div>
+              <button onclick="cadastrarRecorrencia()" class="btn-primary w-full px-4 py-2.5 text-sm font-medium">Criar horários recorrentes</button>
+              ${state.recorrencias.filter(r=>r.profissionalId===state.usuario.id).slice(-3).map(r=>{const nomes=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];return `<div class="mt-3 pt-3 border-t border-[var(--line)] flex items-center justify-between gap-3 text-xs"><span><strong>${r.dias.map(d=>nomes[d]).join(', ')}</strong> · ${r.hora}<br><span class="text-[var(--ink-soft)]">${formatarDataCurta(r.inicio)} → ${formatarDataCurta(r.fim)}</span></span><button onclick="removerRecorrencia(${r.id})" class="text-[var(--brick)]">Remover</button></div>`}).join('')}
+            </div>
+
+            <div class="card p-5 bg-white">
+              <div class="flex items-start justify-between gap-3 mb-4">
+                <div><h3 class="font-medium mb-1">Bloquear período</h3><p class="text-xs text-[var(--ink-soft)]">Férias, folgas ou qualquer indisponibilidade. Selecione o período inteiro de uma vez.</p></div>
+                <span class="text-xs rounded-full px-2 py-1 bg-[var(--brick-bg)] text-[var(--brick)]">Indisponível</span>
+              </div>
+              <div class="grid grid-cols-2 gap-3 mb-3">
+                <div><label class="text-xs text-[var(--ink-soft)] block mb-1">Primeiro dia</label><input id="bloq-inicio" type="date" value="${state.diaSelecionado}" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)]"></div>
+                <div><label class="text-xs text-[var(--ink-soft)] block mb-1">Último dia</label><input id="bloq-fim" type="date" value="${state.diaSelecionado}" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)]"></div>
+              </div>
+              <label class="text-xs text-[var(--ink-soft)] block mb-1">Motivo</label>
+              <input id="bloq-motivo" placeholder="Ex.: férias, viagem, folga..." class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)] mb-3">
+              <button onclick="bloquearPeriodo()" class="btn-brick w-full px-4 py-2.5 text-sm font-medium">Bloquear período</button>
+              <div class="mt-4 pt-3 border-t border-[var(--line)]">
+                <div class="text-xs font-medium mb-2">Próximos bloqueios</div>
+                <div class="space-y-2 max-h-36 overflow-y-auto">
+                  ${state.bloqueios.filter(b=>b.profissionalId===state.usuario.id && b.data>=hojeISO()).sort((a,b)=>a.data.localeCompare(b.data)).map(b=>`<div class="flex items-center justify-between gap-2 text-xs bg-[var(--brick-bg)] rounded-lg px-3 py-2"><span><strong>${formatarDataCurta(b.data)}</strong> · ${escaparHtml(b.motivo)}</span><button onclick="desbloquearData(${b.id})" class="text-[var(--primary-dark)] whitespace-nowrap">Liberar</button></div>`).join('') || '<span class="text-xs text-[var(--ink-soft)]">Nenhum período bloqueado.</span>'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-3 pt-2">
+            ${horariosDoDia.length ? horariosDoDia.map(h => cartaoHorario(h, 'profissional')).join('') : `<div class="card p-7 text-center bg-white"><div class="text-2xl mb-2">🗓️</div><h4 class="font-display text-lg">Dia sem horários cadastrados</h4><p class="text-sm text-[var(--ink-soft)] mt-2">Use os horários recorrentes acima para criar sua agenda ou escolha outra data no calendário.</p></div>`}
+          </div>
+        </div>
+
+        <div class="space-y-5">
+          <div class="card p-4 bg-white">
+            <h3 class="font-medium mb-2">Perfil</h3>
+            <p class="text-sm"><strong>Nome:</strong> ${state.usuario.nome}</p>
+            <p class="text-sm"><strong>Profissão:</strong> ${state.usuario.profissao}</p>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+
+
+function barraNavegacao(){
+  const ehPaciente = state.usuario.tipo === 'paciente';
+  const naoLidas = state.notificacoes.filter(n => { const alvo = ehPaciente ? n.pacienteId === state.usuario.id : n.profissionalId === state.usuario.id; return alvo && !n.lida; }).length;
+
+  const barraInferior = ehPaciente ? `
+    <nav class="mobile-bottombar">
+      <button onclick="irParaAba('profissionais')" class="${abaPaciente === 'profissionais' ? 'active' : ''}"><span class="ic">🔎</span>Clínicas</button>
+      <button onclick="irParaAba('consultas')" class="${abaPaciente === 'consultas' ? 'active' : ''}"><span class="ic">📋</span>Consultas</button>
+      <button onclick="toggleNotificacoes()" class="${notificacoesAbertas ? 'active' : ''}" style="position:relative;"><span class="ic">🔔</span>Avisos${naoLidas > 0 ? `<span class="notif-dot" style="top:-2px;right:22%;">${naoLidas}</span>` : ''}</button>
+      <button onclick="sair()"><span class="ic">↩️</span>Sair</button>
+    </nav>` : `
+    <nav class="mobile-bottombar">
+      <button onclick="toggleNotificacoes()" class="${notificacoesAbertas ? 'active' : ''}" style="position:relative;"><span class="ic">🔔</span>Avisos${naoLidas > 0 ? `<span class="notif-dot" style="top:-2px;right:38%;">${naoLidas}</span>` : ''}</button>
+      <button onclick="sair()"><span class="ic">↩️</span>Sair</button>
+    </nav>`;
+
+  return `
+    <div class="sticky top-0 z-30 border-b border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+      <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+        <span class="font-display text-xl text-[var(--primary-dark)] flex items-center gap-1.5 flex-shrink-0">
+          <span aria-hidden="true" class="inline-block w-2 h-2 rounded-full" style="background:var(--gold);"></span>Fluxo
+        </span>
+        <div class="flex items-center gap-2 sm:gap-3 text-sm min-w-0">
+          <div class="relative hidden sm:block">
+            <button onclick="toggleNotificacoes()" class="btn-ghost px-2.5 py-1.5 text-sm relative" title="Notificações">
+              🔔${naoLidas > 0 ? `<span class="notif-dot">${naoLidas}</span>` : ''}
+            </button>
+            ${notificacoesAbertas ? painelNotificacoes() : ''}
+          </div>
+          <span class="text-[var(--ink-soft)] font-medium truncate max-w-[120px] sm:max-w-none">${ehPaciente ? '👤' : '🩺'} ${state.usuario.nome}</span>
+          <button onclick="sair()" class="btn-ghost px-3 py-1.5 text-xs hidden sm:inline-flex">Sair</button>
+        </div>
+      </div>
+      ${ehPaciente ? `
+      <div class="max-w-5xl mx-auto px-4 pb-3 hidden sm:block">
+        <div class="tab-row">
+          <span class="tab-btn ${abaPaciente === 'profissionais' ? 'active' : ''}" onclick="irParaAba('profissionais')">Clínicas</span>
+          <span class="tab-btn ${abaPaciente === 'consultas' ? 'active' : ''}" onclick="irParaAba('consultas')">Minhas Consultas</span>
+        </div>
+      </div>` : ''}
+    </div>
+    <div class="sm:hidden">${notificacoesAbertas ? painelNotificacoes() : ''}</div>
+    ${barraInferior}`;
+}
+
+function badgeStatus(status){
+  const mapa = {
+    livre: ['Livre', 'badge-livre'],
+    ocupado: ['Ocupado', 'badge-ocupado'],
+    lotado: ['Lotado (com fila)', 'badge-lotado'],
+    concluido: ['Encerrado', 'badge-concluido'],
+  };
+  const [label, classe] = mapa[status] || [status, ''];
+  return `<span class="badge ${classe}">${label}</span>`;
+}
+
+function cartaoHorario(h, visao = 'paciente'){
+  const isProf = visao === 'profissional';
+  
+  // Lógica Paciente
+  if (!isProf) {
+    const pacienteAtual = state.usuario.id;
+    const jaAgendado = h.pacienteId === pacienteAtual;
+    const naFila = h.fila.includes(pacienteAtual);
+    const posicaoFila = h.fila.indexOf(pacienteAtual) + 1;
+
+    let acao = '';
+    if (h.status === 'concluido') {
+      acao = `<span class="text-xs text-[var(--ink-soft)]">Indisponível</span>`;
+    } else if (jaAgendado) {
+      acao = `<span class="text-xs font-medium text-[var(--primary-dark)]">Sua consulta ✓</span>`;
+    } else if (naFila) {
+      acao = `<span class="text-xs font-medium text-[var(--gold)]">Na fila (pos. ${posicaoFila})</span>`;
+    } else if (h.status === 'livre') {
+      acao = `<button onclick="agendarComFeedback(${pacienteAtual}, ${h.id}, this)" class="btn-primary px-3 py-1.5 text-xs font-medium">Agendar</button>`;
+    } else {
+      acao = `<button onclick="agendarComFeedback(${pacienteAtual}, ${h.id}, this)" class="btn-ghost px-3 py-1.5 text-xs font-medium">Entrar na fila (${h.fila.length})</button>`;
+    }
+
+    return `
+      <div class="card p-4 flex items-center justify-between gap-3 bg-white hover:border-[var(--primary)] transition">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-display text-lg tabular text-[var(--primary-dark)]">${h.hora}</span>
+            <span class="text-xs px-2 py-0.5 rounded-md bg-[var(--bg)]">${h.modalidade === 'online' ? '💻 Online' : '📍 Presencial'}</span>
+          </div>
+          <div class="mt-2">${badgeStatus(h.status)}</div>
+        </div>
+        <div>${acao}</div>
+      </div>`;
+  }
+  
+  // Lógica Profissional
+  const paciente = h.pacienteId ? getPaciente(h.pacienteId) : null;
+  const filaHtml = h.fila.length ? `
+    <div class="flex items-center gap-1.5 mt-2">
+      ${h.fila.map((pid, i) => `<span class="queue-chip" title="${getPaciente(pid)?.nome}">${i+1}</span>`).join('')}
+      <span class="text-xs text-[var(--ink-soft)] ml-1">${h.fila.map(pid => getPaciente(pid)?.nome).join(', ')}</span>
+    </div>` : '';
+
+  const acoes = h.status === 'concluido' ? `<span class="text-xs text-[var(--ink-soft)] border px-2 py-1 rounded">Encerrado</span>` :
+    (h.status === 'livre' ? `<span class="text-xs text-[var(--ink-soft)]">Sem paciente</span>` : `
+      <div class="flex flex-col gap-2">
+        <button onclick="marcarConsultaDada(${h.id})" class="btn-primary px-3 py-1.5 text-xs font-medium w-full">Compareceu</button>
+        <button onclick="registrarFalta(${h.id})" class="btn-brick px-3 py-1.5 text-xs font-medium w-full">Faltou</button>
+      </div>`);
+
+  return `
+    <div class="card p-4 bg-white cartao-horario flex items-start justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-display text-lg tabular text-[var(--primary-dark)]">${h.hora}</span>
+            <span class="text-xs px-2 py-0.5 rounded-md bg-[var(--bg)]">${h.modalidade === 'online' ? '💻 Online' : '📍 Presencial'}</span>
+            ${badgeStatus(h.status)}
+          </div>
+          <p class="text-sm mt-2">${paciente ? `Paciente: <strong class="text-[var(--ink)]">${paciente.nome}</strong>` : '<span class="text-[var(--ink-soft)]">Livre</span>'}</p>
+          ${filaHtml}
+        </div>
+        <div class="min-w-[100px] text-right">${acoes}</div>
+    </div>`;
+}
+
+
+function render(){
+  const app = document.getElementById('app');
+  if (!app) return;
+  try {
+    processarLembretes();
+    salvarDados();
+    if (!state.usuario) {
+      app.innerHTML = telaLogin();
+    } else if (state.usuario.tipo === 'paciente') {
+      app.innerHTML = telaPaciente();
+    } else {
+      app.innerHTML = telaProfissional();
+    }
+    renderToasts();
+  } catch (erro) {
+    console.error('Erro ao renderizar Fluxo:', erro);
+    app.innerHTML = `<div class="min-h-screen flex items-center justify-center p-6"><div class="card bg-white p-7 max-w-md text-center"><h2 class="font-display text-2xl mb-2">Não foi possível carregar esta tela</h2><p class="text-sm text-[var(--ink-soft)] mb-4">Seus dados foram preservados. Tente recarregar a página.</p><button onclick="location.reload()" class="btn-primary px-4 py-2">Recarregar</button></div></div>`;
+  }
+}
+
+carregarDados();
+render();
+setInterval(() => { processarLembretes(); salvarDados(); }, 60000);
+</script>
+
+
+</body>
+</html>
