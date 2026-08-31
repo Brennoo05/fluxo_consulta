@@ -111,6 +111,10 @@
   .cal-cell.selected .cal-dot{ background:#fff; }
   .cal-cell.blocked{ background:var(--brick-bg); color:var(--brick); text-decoration:line-through; }
   .cal-block{ position:absolute; bottom:2px; font-size:11px; font-weight:700; }
+  .cal-dots-wrap{ position:absolute; bottom:3px; left:50%; transform:translateX(-50%); display:flex; gap:2px; }
+  .cal-dot-agenda{ width:4.5px; height:4.5px; border-radius:999px; box-shadow:0 0 0 1px rgba(255,255,255,.6); }
+  .cal-legenda-agenda{ display:inline-flex; align-items:center; gap:4px; font-size:11px; color:var(--ink-soft); }
+  .cal-legenda-swatch{ width:7px; height:7px; border-radius:999px; display:inline-block; flex:none; }
   ::-webkit-scrollbar{ height:6px; width:6px; }
   ::-webkit-scrollbar-thumb{ background:var(--line); border-radius:99px; }
 
@@ -309,6 +313,7 @@ function clinicasPadrao(){
       icone: '❤️',
       endereco: 'Av. Paulista, 1500 - Conjunto 12 - Bela Vista',
       convenios: ['Mediservice', 'Petrobras AMS', 'SulAmérica', 'Bradesco Saúde', 'FSFX', 'Cassi', 'Porto Saúde'],
+      email: 'cardiovida@email.com', senha: '123', codigoConvite: 'FLUXO-CARD',
     },
     {
       id: 2,
@@ -318,6 +323,7 @@ function clinicasPadrao(){
       icone: '🌿',
       endereco: 'Rua das Flores, 123 - Centro',
       convenios: ['Particular'],
+      email: 'bemestar@email.com', senha: '123', codigoConvite: 'FLUXO-BEM1',
     },
   ];
 }
@@ -361,6 +367,9 @@ let state = {
   horarios: [],
   proximoIdHorario: 1,
 
+  agendas: [],
+  proximoIdAgenda: 1,
+
   consultas: [],
   proximoIdConsulta: 1,
 
@@ -386,6 +395,11 @@ let state = {
 
 
 let abaPaciente = 'profissionais';       
+let abaProfissional = 'painel';
+let agendaSelecionadaId = null;
+let agendaSelecionadaPacienteId = null;
+let renomeandoAgendaId = null;
+let confirmandoExclusaoAgendaId = null;
 let notificacoesAbertas = false;
 let modalCancelamentoId = null;          
 let buscaProfissionalTexto = '';
@@ -393,10 +407,19 @@ let filtroEspecialidade = 'todas';
 let filtroModalidadeProf = 'todas';
 let cadModalidadeSelecionada = 'presencial';
 
+function agendasDoProfissional(profId){
+  return state.agendas.filter(a => a.profissionalId === profId).sort((a,b)=>a.id-b.id);
+}
+function agendaPadraoId(profId){
+  const ag = state.agendas.find(a=>a.profissionalId===profId);
+  return ag ? ag.id : null;
+}
+
 function novoHorario(profId, diaOffset, hora, modalidade){
   state.horarios.push({
     id: state.proximoIdHorario++,
     profissionalId: profId,
+    agendaId: agendaPadraoId(profId),
     data: hojeISO(diaOffset),
     hora, modalidade,
     status: 'livre',
@@ -409,12 +432,14 @@ function novoHorario(profId, diaOffset, hora, modalidade){
 function dataParaDate(iso){ return new Date(iso + 'T00:00:00'); }
 function dateParaISO(d){ return d.toISOString().slice(0,10); }
 function adicionarDiasISO(iso, dias){ const d=dataParaDate(iso); d.setDate(d.getDate()+dias); return dateParaISO(d); }
-function horarioBloqueado(profId, data){ return state.bloqueios.some(b => b.profissionalId === profId && b.data === data); }
-function adicionarHorarioPorData(profId, data, hora, modalidade){
-  if (horarioBloqueado(profId, data)) return false;
-  if (state.horarios.some(h => h.profissionalId===profId && h.data===data && h.hora===hora)) return false;
-  state.horarios.push({ id: state.proximoIdHorario++, profissionalId:profId, data, hora, modalidade, status:'livre', pacienteId:null, fila:[] });
-  return true;
+function horarioBloqueado(profId, data, agendaId){ return state.bloqueios.some(b => b.profissionalId === profId && b.data === data && (agendaId==null || b.agendaId===agendaId)); }
+function adicionarHorarioPorData(profId, data, hora, modalidade, agendaId){
+  const ag = agendaId ?? agendaPadraoId(profId);
+  if (horarioBloqueado(profId, data, ag)) return { ok:false, motivo:'bloqueado' };
+  const conflito = state.horarios.find(h => h.profissionalId===profId && h.data===data && h.hora===hora);
+  if (conflito) return { ok:false, motivo:'conflito', agendaId: conflito.agendaId };
+  state.horarios.push({ id: state.proximoIdHorario++, profissionalId:profId, agendaId: ag, data, hora, modalidade, status:'livre', pacienteId:null, fila:[] });
+  return { ok:true };
 }
 function bloquearPeriodo(){
   const inicio=document.getElementById('bloq-inicio')?.value;
@@ -422,15 +447,16 @@ function bloquearPeriodo(){
   const motivo=document.getElementById('bloq-motivo')?.value?.trim() || 'Indisponibilidade';
   if(!inicio||!fim) return mensagemErro('Informe o início e o fim do período.');
   if(inicio<hojeISO() || fim<inicio) return mensagemErro('Confira o período de bloqueio.');
+  if(!agendaSelecionadaId) return mensagemErro('Selecione uma agenda antes de bloquear um período.');
 
   let bloqueadas=0, ocupadas=0, data=inicio;
   while(data<=fim){
-    if(!horarioBloqueado(state.usuario.id,data)){
-      const ocupados=state.horarios.filter(h=>h.profissionalId===state.usuario.id && h.data===data && (h.pacienteId || h.fila.length));
+    if(!horarioBloqueado(state.usuario.id,data,agendaSelecionadaId)){
+      const ocupados=state.horarios.filter(h=>h.profissionalId===state.usuario.id && h.agendaId===agendaSelecionadaId && h.data===data && (h.pacienteId || h.fila.length));
       if(ocupados.length){ ocupadas++; }
       else {
-        state.bloqueios.push({id:Date.now()+bloqueadas, profissionalId:state.usuario.id, data, motivo});
-        state.horarios=state.horarios.filter(h=>!(h.profissionalId===state.usuario.id && h.data===data));
+        state.bloqueios.push({id:Date.now()+bloqueadas, profissionalId:state.usuario.id, agendaId:agendaSelecionadaId, data, motivo});
+        state.horarios=state.horarios.filter(h=>!(h.profissionalId===state.usuario.id && h.agendaId===agendaSelecionadaId && h.data===data));
         bloqueadas++;
       }
     }
@@ -456,37 +482,119 @@ function cadastrarRecorrencia(){
   const dias=[...document.querySelectorAll('.rec-dia:checked')].map(x=>Number(x.value));
   if(!inicio||!fim||!hora||!dias.length) return mensagemErro('Selecione o período, o horário e pelo menos um dia da semana.');
   if(inicio<hojeISO() || fim<inicio) return mensagemErro('Confira o período da recorrência.');
+  if(!agendaSelecionadaId) return mensagemErro('Selecione uma agenda antes de criar horários recorrentes.');
 
-  let criados=0, ignorados=0, data=inicio;
+  let criados=0, bloqueados=0;
+  const nomesAgendasConflitantes = new Set();
+  let data=inicio;
   while(data<=fim){
     const dow=dataParaDate(data).getDay();
     if(dias.includes(dow)){
-      if(horarioBloqueado(state.usuario.id,data)) ignorados++;
-      else if(adicionarHorarioPorData(state.usuario.id,data,hora,modalidade)) criados++;
-      else ignorados++;
+      const r = adicionarHorarioPorData(state.usuario.id,data,hora,modalidade,agendaSelecionadaId);
+      if(r.ok) criados++;
+      else if(r.motivo==='bloqueado') bloqueados++;
+      else if(r.motivo==='conflito') nomesAgendasConflitantes.add(state.agendas.find(a=>a.id===r.agendaId)?.nome || 'outra agenda');
     }
     data=adicionarDiasISO(data,1);
   }
-  state.recorrencias.push({id:state.proximoIdRecorrencia++,profissionalId:state.usuario.id,inicio,fim,hora,modalidade,dias});
   const nomes=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-  mostrarToast(`${criados} ${criados===1?'horário criado':'horários criados'} · ${dias.map(d=>nomes[d]).join(', ')}${ignorados?` · ${ignorados} ignorado(s)`:''}.`, criados ? 'success' : 'info');
+  if(!criados){
+    let msgErro = `Nenhum horário foi criado — todos os dias selecionados já estavam ocupados`;
+    msgErro += nomesAgendasConflitantes.size ? ` (agenda ${[...nomesAgendasConflitantes].join(', ')})` : (bloqueados ? ' por bloqueio' : '');
+    mensagemErro(msgErro + '.');
+    return;
+  }
+  state.recorrencias.push({id:state.proximoIdRecorrencia++,profissionalId:state.usuario.id,agendaId:agendaSelecionadaId,inicio,fim,hora,modalidade,dias});
+  let msg = `${criados} ${criados===1?'horário criado':'horários criados'} · ${dias.map(d=>nomes[d]).join(', ')}`;
+  if(bloqueados) msg += ` · ${bloqueados} ignorado(s) por bloqueio`;
+  if(nomesAgendasConflitantes.size) msg += ` · alguns dias já existiam na agenda ${[...nomesAgendasConflitantes].join(', ')}`;
+  mostrarToast(msg, 'success');
   render();
 }
 
 function removerRecorrencia(id){
   const r=state.recorrencias.find(x=>x.id===id); if(!r) return;
-  state.horarios=state.horarios.filter(h=>!(h.profissionalId===r.profissionalId && h.hora===r.hora && h.data>=r.inicio && h.data<=r.fim && r.dias.includes(dataParaDate(h.data).getDay()) && !h.pacienteId && !h.fila.length));
+  state.horarios=state.horarios.filter(h=>!(h.profissionalId===r.profissionalId && (r.agendaId==null || h.agendaId===r.agendaId) && h.hora===r.hora && h.data>=r.inicio && h.data<=r.fim && r.dias.includes(dataParaDate(h.data).getDay()) && !h.pacienteId && !h.fila.length));
   state.recorrencias=state.recorrencias.filter(x=>x.id!==id);
   mostrarToast('Recorrência removida.'); render();
+}
+
+function selecionarAgenda(id){
+  agendaSelecionadaId = id;
+  renomeandoAgendaId = null;
+  confirmandoExclusaoAgendaId = null;
+  calendarioAberto = false;
+  render();
+}
+function criarAgenda(){
+  const input = document.getElementById('nova-agenda-nome');
+  const nome = input?.value?.trim();
+  if(!nome) return mensagemErro('Dê um nome para a nova agenda (ex.: Convênio Amil, Particular...).');
+  const agenda = { id: state.proximoIdAgenda++, profissionalId: state.usuario.id, nome, criadaEm: new Date().toISOString() };
+  state.agendas.push(agenda);
+  agendaSelecionadaId = agenda.id;
+  mostrarToast(`Agenda "${nome}" criada.`, 'success');
+  render();
+}
+function iniciarRenomeioAgenda(id){
+  renomeandoAgendaId = id;
+  confirmandoExclusaoAgendaId = null;
+  render();
+}
+function cancelarRenomeioAgenda(){
+  renomeandoAgendaId = null;
+  render();
+}
+function salvarNomeAgenda(id){
+  const input = document.getElementById(`renome-agenda-${id}`);
+  const nome = input?.value?.trim();
+  if(!nome) return mensagemErro('O nome da agenda não pode ficar em branco.');
+  const agenda = state.agendas.find(a=>a.id===id);
+  if(agenda) agenda.nome = nome;
+  renomeandoAgendaId = null;
+  mostrarToast('Agenda renomeada.', 'success');
+  render();
+}
+function pedirExclusaoAgenda(id){
+  confirmandoExclusaoAgendaId = id;
+  renomeandoAgendaId = null;
+  render();
+}
+function cancelarExclusaoAgenda(){
+  confirmandoExclusaoAgendaId = null;
+  render();
+}
+function excluirAgenda(id){
+  const minhas = agendasDoProfissional(state.usuario.id);
+  if(minhas.length <= 1){ confirmandoExclusaoAgendaId=null; return mensagemErro('Você precisa manter ao menos uma agenda.'); }
+  const ocupados = state.horarios.filter(h=>h.agendaId===id && (h.pacienteId || h.fila.length));
+  if(ocupados.length){ confirmandoExclusaoAgendaId=null; return mensagemErro('Não é possível excluir: há consultas confirmadas ou fila nesta agenda.'); }
+  const nomeAgenda = state.agendas.find(a=>a.id===id)?.nome || 'Agenda';
+  state.horarios = state.horarios.filter(h=>h.agendaId!==id);
+  state.recorrencias = state.recorrencias.filter(r=>r.agendaId!==id);
+  state.bloqueios = state.bloqueios.filter(b=>b.agendaId!==id);
+  state.agendas = state.agendas.filter(a=>a.id!==id);
+  confirmandoExclusaoAgendaId = null;
+  if(agendaSelecionadaId===id){
+    agendaSelecionadaId = agendasDoProfissional(state.usuario.id)[0]?.id ?? null;
+  }
+  mostrarToast(`Agenda "${nomeAgenda}" excluída.`, 'info');
+  render();
 }
 
 function semearDados(){
   state.horarios = [];
   state.consultas = [];
   state.notificacoes = [];
+  state.agendas = [];
   state.proximoIdHorario = 1;
   state.proximoIdConsulta = 1;
   state.proximoIdNotificacao = 1;
+  state.proximoIdAgenda = 1;
+
+  state.profissionais.forEach(p => {
+    state.agendas.push({ id: state.proximoIdAgenda++, profissionalId: p.id, nome: 'Geral', criadaEm: new Date().toISOString() });
+  });
 
   // Horários Camila
   novoHorario(1, 0, '09:00', 'online');
@@ -558,6 +666,25 @@ function carregarDados() {
       state.proximoIdClinica = 3;
     }
     if (state.clinicaSelecionadaId === undefined) state.clinicaSelecionadaId = null;
+    if (state.proximoIdClinica === undefined) state.proximoIdClinica = (Math.max(0, ...state.clinicas.map(c=>c.id)) + 1);
+    state.clinicas.forEach(c => {
+      if (!c.codigoConvite) c.codigoConvite = gerarCodigoConvite();
+      if (!c.email) c.email = `clinica${c.id}@email.com`;
+      if (!c.senha) c.senha = '123';
+    });
+    // Migração: cria o conceito de agendas (grades independentes por convênio/particular) para estados salvos anteriores
+    if (!Array.isArray(state.agendas)) state.agendas = [];
+    if (state.proximoIdAgenda === undefined) state.proximoIdAgenda = 1;
+    state.profissionais.forEach(p => {
+      if (!state.agendas.some(a => a.profissionalId === p.id)) {
+        state.agendas.push({ id: state.proximoIdAgenda++, profissionalId: p.id, nome: 'Geral', criadaEm: new Date().toISOString() });
+      }
+    });
+    const primeiraAgendaDoProf = {};
+    state.agendas.forEach(a => { if (!(a.profissionalId in primeiraAgendaDoProf)) primeiraAgendaDoProf[a.profissionalId] = a.id; });
+    state.horarios.forEach(h => { if (h.agendaId == null) h.agendaId = primeiraAgendaDoProf[h.profissionalId] ?? null; });
+    state.recorrencias.forEach(r => { if (r.agendaId == null) r.agendaId = primeiraAgendaDoProf[r.profissionalId] ?? null; });
+    state.bloqueios.forEach(b => { if (b.agendaId == null) b.agendaId = primeiraAgendaDoProf[b.profissionalId] ?? null; });
     state.profissionais.forEach(p => {
       if (!p.especialidade) p.especialidade = p.profissao;
       if (!p.avatar) p.avatar = '🧑‍⚕️';
@@ -580,6 +707,14 @@ function getPaciente(id){ return state.pacientes.find(p => p.id === id); }
 function getProfissional(id){ return state.profissionais.find(p => p.id === id); }
 function getHorario(id){ return state.horarios.find(h => h.id === id); }
 function getClinica(id){ return state.clinicas.find(c => c.id === id); }
+function gerarCodigoConvite(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let codigo='';
+  do {
+    codigo = 'FLUXO-' + Array.from({length:4},()=>chars[Math.floor(Math.random()*chars.length)]).join('');
+  } while (state.clinicas.some(c=>c.codigoConvite===codigo));
+  return codigo;
+}
 
 function formatarDataCurta(iso){
   const d = new Date(iso + 'T00:00:00');
@@ -693,7 +828,7 @@ function salvarAnotacaoPrivada(consultaId){
   arr.push({id:Date.now(),profissionalId:state.usuario.id,texto,criadoEm:new Date().toISOString()}); state.anotacoesPrivadas[consultaId]=arr;
   mostrarToast('Anotação privada salva.'); render();
 }
-function abrirReagendamento(consultaId){ if(state.usuario?.tipo !== 'paciente'){ mensagemErro('O reagendamento é feito pelo paciente.'); return; } const c=state.consultas.find(x=>x.id===consultaId); if(!c)return; const h=getHorario(c.horarioId); if(!h)return; const prof=getProfissional(h.profissionalId); const disponiveis=state.horarios.filter(x=>x.profissionalId===h.profissionalId&&x.status==='livre'&&!horarioJaEncerrado(x.data,x.hora)).sort((a,b)=>(a.data+a.hora).localeCompare(b.data+b.hora)).slice(0,12); const op=disponiveis.map(x=>`<option value="${x.id}">${formatarDataCurta(x.data)} · ${x.hora} · ${x.modalidade==='online'?'Online':'Presencial'}</option>`).join('');
+function abrirReagendamento(consultaId){ if(state.usuario?.tipo !== 'paciente'){ mensagemErro('O reagendamento é feito pelo paciente.'); return; } const c=state.consultas.find(x=>x.id===consultaId); if(!c)return; const h=getHorario(c.horarioId); if(!h)return; const prof=getProfissional(h.profissionalId); const disponiveis=state.horarios.filter(x=>x.profissionalId===h.profissionalId&&x.agendaId===h.agendaId&&x.status==='livre'&&!horarioJaEncerrado(x.data,x.hora)).sort((a,b)=>(a.data+a.hora).localeCompare(b.data+b.hora)).slice(0,12); const op=disponiveis.map(x=>`<option value="${x.id}">${formatarDataCurta(x.data)} · ${x.hora} · ${x.modalidade==='online'?'Online':'Presencial'}</option>`).join('');
   const modal=document.createElement('div'); modal.id='modal-reagendamento'; modal.className='fixed inset-0 bg-black/40 z-[80] flex items-center justify-center p-4'; modal.innerHTML=`<div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl"><h3 class="font-display text-xl">Reagendar consulta</h3><p class="text-sm text-[var(--ink-soft)] mt-2">${escaparHtml(prof?.nome||'Profissional')} · escolha um novo horário.</p>${op?`<select id="novo-horario-reag" class="w-full border border-[var(--line)] rounded-lg p-2 mt-4">${op}</select><div class="flex gap-2 mt-5"><button class="btn-ghost flex-1 py-2" onclick="document.getElementById('modal-reagendamento')?.remove()">Cancelar</button><button class="btn-primary flex-1 py-2" onclick="confirmarReagendamento(${consultaId})">Reagendar</button></div>`:`<div class="card p-4 mt-4 text-sm">Não há horários livres disponíveis no momento.</div><button class="btn-ghost w-full py-2 mt-4" onclick="document.getElementById('modal-reagendamento')?.remove()">Fechar</button>`}</div>`; document.body.appendChild(modal); }
 function confirmarReagendamento(consultaId){ const c=state.consultas.find(x=>x.id===consultaId); const novoId=Number(document.getElementById('novo-horario-reag')?.value); const novo=getHorario(novoId); if(!c||!novo||novo.status!=='livre')return mensagemErro('Esse horário não está mais disponível.'); const antigo=getHorario(c.horarioId); const prof=getProfissional(novo.profissionalId); if(antigo) { antigo.pacienteId=null; antigo.status='livre'; }
   c.horarioId=novo.id; c.status='confirmada'; novo.pacienteId=c.pacienteId; novo.status='ocupado'; c.reagendadoDe=antigo?.id||null; c.reagendadoEm=new Date().toISOString(); state.reagendamentos[c.id]={de:antigo?.id||null,para:novo.id,data:c.reagendadoEm}; notificar(c.pacienteId,'reagendamento',`Sua consulta com ${prof?.nome||'profissional'} foi reagendada para ${formatarDataCurta(novo.data)} às ${novo.hora}.`); notificar(null,'reagendamento_profissional',`Consulta de ${getPaciente(c.pacienteId)?.nome||'cliente'} reagendada para ${formatarDataCurta(novo.data)} às ${novo.hora}.`,prof?.id); document.getElementById('modal-reagendamento')?.remove(); mostrarToast('Consulta reagendada com sucesso.'); render(); }
@@ -917,7 +1052,7 @@ function simularLembrete(consultaId){
 
 
 let telaLoginAtiva = 'login'; // 'login' | 'cadastro'
-let tipoContaSelecionado = 'paciente'; // 'paciente' | 'profissional'
+let tipoContaSelecionado = 'paciente'; // 'paciente' | 'profissional' | 'clinica'
 
 function alternarTelaLogin(tela){
   telaLoginAtiva = tela;
@@ -942,10 +1077,16 @@ function fazerLogin(){
     state.profissionalSelecionadoId = null;
     state.agendaAberta = false;
     abaPaciente = 'profissionais';
+  } else if (tipoContaSelecionado === 'clinica') {
+    const c = state.clinicas.find(c => c.email === email && c.senha === senha);
+    if (!c) { mensagemErro('E-mail ou senha inválidos.'); return; }
+    state.usuario = { tipo: 'clinica', id: c.id, nome: c.nome };
   } else {
     const p = state.profissionais.find(p => p.email === email && p.senha === senha);
     if (!p) { mensagemErro('E-mail ou senha inválidos.'); return; }
     state.usuario = { tipo: 'profissional', id: p.id, nome: p.nome, profissao: p.profissao };
+    abaProfissional = 'painel';
+    agendaSelecionadaId = agendasDoProfissional(p.id)[0]?.id ?? null;
   }
   render();
 }
@@ -963,12 +1104,31 @@ function fazerCadastro(){
     state.pacientes.push(novo);
     state.usuario = { tipo: 'paciente', id: novo.id, nome: novo.nome };
     abaPaciente = 'profissionais';
+  } else if (tipoContaSelecionado === 'clinica') {
+    if (state.clinicas.some(c => c.email === email)) { mensagemErro('E-mail já cadastrado.'); return; }
+    const endereco = document.getElementById('cad-clinica-endereco')?.value.trim();
+    const especialidade = document.getElementById('cad-clinica-especialidade')?.value.trim();
+    if (!endereco) { mensagemErro('Informe o endereço da clínica.'); return; }
+    const conveniosTexto = document.getElementById('cad-clinica-convenios')?.value.trim();
+    const convenios = conveniosTexto ? conveniosTexto.split(',').map(s=>s.trim()).filter(Boolean) : ['Particular'];
+    const nova = {
+      id: state.proximoIdClinica++, nome, email, senha,
+      especialidade: especialidade || 'Clínica geral',
+      descricao: `${nome} — cadastrada na plataforma Fluxo.`,
+      icone: '🏥',
+      endereco,
+      convenios,
+      codigoConvite: gerarCodigoConvite(),
+    };
+    state.clinicas.push(nova);
+    state.usuario = { tipo: 'clinica', id: nova.id, nome: nova.nome };
+    mostrarToast(`Clínica cadastrada! Use o código ${nova.codigoConvite} para vincular seus profissionais.`);
   } else {
     const profissao = document.getElementById('cad-profissao').value.trim();
     if (!profissao) { mensagemErro('Preencha sua profissão.'); return; }
-    const clinicaId = Number(document.getElementById('cad-clinica')?.value || '');
-    const clinicaEscolhida = getClinica(clinicaId);
-    if (!clinicaId || !clinicaEscolhida) { mensagemErro('Selecione a clínica onde você atende.'); return; }
+    const codigo = document.getElementById('cad-codigo-clinica')?.value.trim().toUpperCase();
+    const clinicaEscolhida = state.clinicas.find(c => c.codigoConvite === codigo);
+    if (!codigo || !clinicaEscolhida) { mensagemErro('Código de convite inválido. Confira o código com a clínica.'); return; }
     if (state.profissionais.some(p => p.email === email)) { mensagemErro('E-mail já cadastrado.'); return; }
     const especialidade = document.getElementById('cad-especialidade').value.trim();
     const descricao = document.getElementById('cad-descricao').value.trim();
@@ -985,6 +1145,8 @@ function fazerCadastro(){
     };
     state.profissionais.push(novo);
     state.usuario = { tipo: 'profissional', id: novo.id, nome: novo.nome, profissao: novo.profissao };
+    state.agendas.push({ id: state.proximoIdAgenda++, profissionalId: novo.id, nome: 'Geral', criadaEm: new Date().toISOString() });
+    agendaSelecionadaId = agendasDoProfissional(novo.id)[0]?.id ?? null;
     mostrarToast(`Cadastro concluído! Você já aparece em ${clinicaEscolhida.nome} para os pacientes.`);
   }
   render();
@@ -1000,6 +1162,18 @@ function sair(){
   state.usuario = null;
   state.clinicaSelecionadaId = null;
   abaPaciente = 'profissionais';
+  abaProfissional = 'painel';
+  agendaSelecionadaId = null;
+  agendaSelecionadaPacienteId = null;
+  renomeandoAgendaId = null;
+  confirmandoExclusaoAgendaId = null;
+  notificacoesAbertas = false;
+  render();
+}
+
+function irParaAbaProfissional(aba){
+  abaProfissional = aba;
+  calendarioAberto = false;
   notificacoesAbertas = false;
   render();
 }
@@ -1086,27 +1260,45 @@ function selecionarDia(iso){
   render();
 }
 
-function gerarGradeCalendario(filtroProfissionalId = null){
+const PALETA_AGENDAS = ['#2563eb','#16a34a','#d97706','#db2777','#7c3aed','#0891b2','#dc2626','#65a30d'];
+function corAgenda(agendaId){
+  return PALETA_AGENDAS[Math.abs(Number(agendaId)) % PALETA_AGENDAS.length];
+}
+
+function gerarGradeCalendario(filtroProfissionalId = null, filtroAgendaId = null, mostrarAgendas = false){
   const { ano, mes } = calVisao;
   const primeiroDiaSemana = new Date(ano, mes, 1).getDay();
   const totalDias = new Date(ano, mes + 1, 0).getDate();
   const hoje = hojeISO();
   const nomesMes = new Date(ano, mes, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  const todasAgendasDoProf = mostrarAgendas && filtroProfissionalId ? agendasDoProfissional(filtroProfissionalId) : [];
 
   let celulas = '';
   for (let i = 0; i < primeiroDiaSemana; i++) celulas += `<div class="cal-cell"></div>`;
   for (let dia = 1; dia <= totalDias; dia++) {
     const iso = `${ano}-${String(mes+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
-    const temHorario = state.horarios.some(h => h.data === iso && (filtroProfissionalId ? h.profissionalId === filtroProfissionalId : true));
-    const bloqueado = filtroProfissionalId ? horarioBloqueado(filtroProfissionalId, iso) : false;
+    const horariosDoDiaCal = filtroProfissionalId ? state.horarios.filter(h => h.data === iso && h.profissionalId === filtroProfissionalId) : [];
+    const temHorario = filtroProfissionalId
+      ? horariosDoDiaCal.some(h => filtroAgendaId ? h.agendaId === filtroAgendaId : true)
+      : state.horarios.some(h => h.data === iso);
+    const bloqueado = filtroProfissionalId ? horarioBloqueado(filtroProfissionalId, iso, filtroAgendaId) : false;
+    const agendasNoDia = mostrarAgendas ? [...new Set(horariosDoDiaCal.map(h => h.agendaId))] : [];
+    const pontosAgendas = agendasNoDia.map(id => {
+      const nome = todasAgendasDoProf.find(a => a.id === id)?.nome || '';
+      return `<span class="cal-dot-agenda" title="${escaparHtml(nome)}" style="background:${corAgenda(id)}"></span>`;
+    }).join('');
     const classes = ['cal-cell'];
     if (iso === state.diaSelecionado) classes.push('selected');
     if (iso === hoje) classes.push('today');
     if (bloqueado) classes.push('blocked');
-    celulas += `<div class="${classes.join(' ')}" onclick="selecionarDia('${iso}')">${dia}${bloqueado ? '<span class="cal-block">×</span>' : (temHorario ? '<span class="cal-dot"></span>' : '')}</div>`;
+    const marcador = bloqueado ? '<span class="cal-block">×</span>' : (mostrarAgendas ? (agendasNoDia.length ? `<span class="cal-dots-wrap">${pontosAgendas}</span>` : '') : (temHorario ? '<span class="cal-dot"></span>' : ''));
+    celulas += `<div class="${classes.join(' ')}" onclick="selecionarDia('${iso}')" title="${mostrarAgendas && agendasNoDia.length ? escaparHtml(agendasNoDia.map(id=>todasAgendasDoProf.find(a=>a.id===id)?.nome||'').join(', ')) : ''}">${dia}${marcador}</div>`;
   }
 
   const diasSemana = ['D','S','T','Q','Q','S','S'].map(d => `<div class="w-9 text-center text-xs text-[var(--ink-soft)] font-medium">${d}</div>`).join('');
+  const legendaAgendas = mostrarAgendas && todasAgendasDoProf.length
+    ? `<div class="flex flex-wrap gap-x-3 gap-y-1 mt-2">${todasAgendasDoProf.map(a => `<span class="cal-legenda-agenda"><span class="cal-legenda-swatch" style="background:${corAgenda(a.id)}"></span>${escaparHtml(a.nome)}</span>`).join('')}</div>`
+    : '';
 
   return `
     <div data-calendar-popover class="calendar-popover card p-4 absolute z-20 mt-2 shadow-lg bg-[var(--surface)]">
@@ -1117,7 +1309,9 @@ function gerarGradeCalendario(filtroProfissionalId = null){
       </div>
       <div class="grid grid-cols-7 gap-1 mb-1">${diasSemana}</div>
       <div class="grid grid-cols-7 gap-1">${celulas}</div>
-      <p class="text-xs text-[var(--ink-soft)] mt-3">● com horários &nbsp; <span class="text-[var(--brick)]">× bloqueado</span></p>
+      ${mostrarAgendas
+        ? `<p class="text-xs text-[var(--ink-soft)] mt-3"><span class="text-[var(--brick)]">× bloqueado</span> · cada cor é uma agenda</p>${legendaAgendas}`
+        : `<p class="text-xs text-[var(--ink-soft)] mt-3">● com horários &nbsp; <span class="text-[var(--brick)]">× bloqueado</span></p>`}
     </div>`;
 }
 
@@ -1132,13 +1326,17 @@ function telaLogin(){
       <label class="tab-btn flex-1 text-center ${tipoContaSelecionado === 'profissional' ? 'active' : ''}" style="cursor:pointer;">
         <input type="radio" name="tipo" ${tipoContaSelecionado === 'profissional' ? 'checked' : ''} onchange="alternarTipoConta('profissional')" class="sr-only"> 🩺 Profissional
       </label>
+      <label class="tab-btn flex-1 text-center ${tipoContaSelecionado === 'clinica' ? 'active' : ''}" style="cursor:pointer;">
+        <input type="radio" name="tipo" ${tipoContaSelecionado === 'clinica' ? 'checked' : ''} onchange="alternarTipoConta('clinica')" class="sr-only"> 🏥 Clínica
+      </label>
     </div>`;
 
   let corpo = '';
   if (telaLoginAtiva === 'login') {
+    const emailExemplo = tipoContaSelecionado==='paciente' ? 'ana@email.com' : tipoContaSelecionado==='clinica' ? 'cardiovida@email.com' : 'camila@email.com';
     corpo = `
       <div class="space-y-3">
-        <input id="login-email" type="email" placeholder="E-mail" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm" value="${tipoContaSelecionado==='paciente'?'ana@email.com':'camila@email.com'}">
+        <input id="login-email" type="email" placeholder="E-mail" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm" value="${emailExemplo}">
         <input id="login-senha" type="password" placeholder="Senha" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm" value="123">
         <button onclick="fazerLogin()" class="btn-primary w-full py-2.5 text-sm font-medium">Entrar</button>
         <div class="text-center mt-3">
@@ -1148,17 +1346,14 @@ function telaLogin(){
   } else {
     corpo = `
       <div class="space-y-3">
-        <input id="cad-nome" type="text" placeholder="Nome completo" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm">
+        <input id="cad-nome" type="text" placeholder="${tipoContaSelecionado === 'clinica' ? 'Nome da clínica' : 'Nome completo'}" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm">
         <input id="cad-email" type="email" placeholder="E-mail" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm">
         <input id="cad-senha" type="password" placeholder="Senha" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm">
         ${tipoContaSelecionado === 'profissional' ? `
         <input id="cad-profissao" type="text" placeholder="Ex: Psicólogo, Médico..." class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm">
         <div>
-          <select id="cad-clinica" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-white">
-            <option value="">Selecione a clínica onde você atende</option>
-            ${state.clinicas.map(c => `<option value="${c.id}">${c.icone} ${c.nome} · ${c.especialidade}</option>`).join('')}
-          </select>
-          <p class="text-xs text-[var(--ink-soft)] mt-1">Seu perfil aparecerá automaticamente para os pacientes dessa clínica.</p>
+          <input id="cad-codigo-clinica" type="text" placeholder="Código de convite da clínica (ex.: FLUXO-XXXX)" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm uppercase">
+          <p class="text-xs text-[var(--ink-soft)] mt-1">Peça esse código para a clínica onde você atende. Seu perfil aparecerá automaticamente para os pacientes dela.</p>
         </div>
         <input id="cad-especialidade" type="text" placeholder="Especialidade (opcional)" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm">
         <textarea id="cad-descricao" placeholder="Breve descrição do atendimento (opcional)" rows="2" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm"></textarea>
@@ -1170,6 +1365,11 @@ function telaLogin(){
         <div id="cad-local-wrap" style="display:${cadModalidadeSelecionada === 'online' ? 'none' : 'block'};">
           <input id="cad-local" type="text" placeholder="Local de atendimento (opcional, usa o endereço da clínica se vazio)" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm">
         </div>` : ''}
+        ${tipoContaSelecionado === 'clinica' ? `
+        <input id="cad-clinica-endereco" type="text" placeholder="Endereço da clínica" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm">
+        <input id="cad-clinica-especialidade" type="text" placeholder="Especialidade / área (ex.: Cardiologia, Saúde multidisciplinar)" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm">
+        <input id="cad-clinica-convenios" type="text" placeholder="Convênios aceitos, separados por vírgula (opcional)" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm">
+        <p class="text-xs text-[var(--ink-soft)]">Depois do cadastro você recebe um código de convite para compartilhar com os profissionais que atendem na sua clínica.</p>` : ''}
         <button onclick="fazerCadastro()" class="btn-primary w-full py-2.5 text-sm font-medium">Criar Conta</button>
         <div class="text-center mt-3">
           <button onclick="alternarTelaLogin('login')" class="text-sm text-[var(--ink-soft)]">‹ Voltar para Login</button>
@@ -1200,6 +1400,69 @@ function telaLogin(){
 
 
 
+function copiarCodigoConvite(codigo){
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(codigo).then(() => mostrarToast('Código copiado!')).catch(() => mensagemErro(`Não foi possível copiar automaticamente. Código: ${codigo}`));
+  } else {
+    mensagemErro(`Copie manualmente o código: ${codigo}`);
+  }
+}
+function regenerarCodigoConvite(){
+  const clinica = getClinica(state.usuario.id);
+  if (!clinica) return;
+  clinica.codigoConvite = gerarCodigoConvite();
+  mostrarToast(`Novo código gerado: ${clinica.codigoConvite}. O código antigo deixa de funcionar.`, 'info');
+  render();
+}
+
+function telaClinica(){
+  const clinica = getClinica(state.usuario.id);
+  const medicos = state.profissionais.filter(p => p.clinicaId === clinica.id);
+  return `
+    ${barraNavegacao()}
+    <div class="max-w-3xl mx-auto px-4 py-6 space-y-6">
+      <div>
+        <h2 class="font-display text-2xl">${clinica.icone || '🏥'} ${escaparHtml(clinica.nome)}</h2>
+        <p class="text-sm text-[var(--ink-soft)]">${escaparHtml(clinica.especialidade || '')} · ${escaparHtml(clinica.endereco || '')}</p>
+      </div>
+
+      <div class="card p-5 bg-white">
+        <h3 class="font-medium mb-1">Código de convite</h3>
+        <p class="text-xs text-[var(--ink-soft)] mb-4">Compartilhe este código com os profissionais que atendem na sua clínica. Ao se cadastrar, eles digitam esse código e já aparecem vinculados a você automaticamente.</p>
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="font-display text-2xl tracking-wider text-[var(--primary-dark)] bg-[var(--gold-bg)] px-4 py-2 rounded-lg">${clinica.codigoConvite}</span>
+          <button onclick="copiarCodigoConvite('${clinica.codigoConvite}')" class="btn-ghost px-3 py-2 text-sm font-medium">📋 Copiar código</button>
+          <button onclick="regenerarCodigoConvite()" class="btn-ghost px-3 py-2 text-sm font-medium">🔄 Gerar novo código</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="flex items-center justify-between border-b border-[var(--line)] pb-2 mb-3">
+          <h3 class="font-medium text-[var(--ink)]">Profissionais vinculados</h3>
+          <span class="badge badge-ocupado">${medicos.length}</span>
+        </div>
+        <div class="space-y-2">
+          ${medicos.length ? medicos.map(m => `<div class="card bg-white p-4 flex items-center justify-between gap-3 flex-wrap">
+            <div class="flex items-center gap-3">
+              <div class="avatar-circle" style="width:44px;height:44px;font-size:1.3rem;">${m.avatar || '🧑‍⚕️'}</div>
+              <div>
+                <div class="font-medium">${escaparHtml(m.nome)}</div>
+                <div class="text-xs text-[var(--ink-soft)]">${escaparHtml(m.especialidade || m.profissao)}</div>
+              </div>
+            </div>
+            <span class="text-xs">${m.modalidadeAtendimento === 'online' ? '💻 Online' : m.modalidadeAtendimento === 'ambos' ? '💻📍 Presencial e Online' : '📍 Presencial'}</span>
+          </div>`).join('') : `<div class="card bg-white p-5 text-sm text-[var(--ink-soft)]">Nenhum profissional vinculado ainda. Compartilhe o código de convite acima para que eles se cadastrem.</div>`}
+        </div>
+      </div>
+
+      <div class="card p-4 bg-white">
+        <h3 class="font-medium mb-2">Dados da clínica</h3>
+        <p class="text-sm"><strong>Endereço:</strong> ${escaparHtml(clinica.endereco || '')}</p>
+        <p class="text-sm"><strong>Convênios aceitos:</strong> ${(clinica.convenios || []).map(c => escaparHtml(c)).join(', ') || '—'}</p>
+      </div>
+    </div>`;
+}
+
 function selecionarClinica(id){
   state.clinicaSelecionadaId = id;
   state.profissionalSelecionadoId = null;
@@ -1220,23 +1483,33 @@ function voltarParaListaClinicas(){
 function selecionarProfissional(id){
   state.profissionalSelecionadoId = id;
   state.agendaAberta = false;
+  agendaSelecionadaPacienteId = null;
   render();
 }
 
 function voltarParaListaProfissionais(){
   state.profissionalSelecionadoId = null;
   state.agendaAberta = false;
+  agendaSelecionadaPacienteId = null;
   render();
 }
 
 function voltarParaPerfilProfissional(){
   state.agendaAberta = false;
+  agendaSelecionadaPacienteId = null;
   render();
 }
 
 function abrirAgendaProfissional(){
   state.agendaAberta = true;
   state.diaSelecionado = hojeISO(1); // reset para amanhã para ter dados
+  agendaSelecionadaPacienteId = agendasDoProfissional(state.profissionalSelecionadoId)[0]?.id ?? null;
+  render();
+}
+
+function selecionarAgendaPaciente(id){
+  agendaSelecionadaPacienteId = id;
+  calendarioAberto = false;
   render();
 }
 
@@ -1443,11 +1716,30 @@ function telaPacientePerfil(){
     </div>`;
 }
 
+function seletorAgendaPaciente(prof){
+  const opcoes = agendasDoProfissional(prof.id);
+  if (opcoes.length <= 1) return '';
+  return `
+    <div class="card p-4 bg-white">
+      <h4 class="text-sm font-medium mb-1">Qual convênio você utiliza?</h4>
+      <p class="text-xs text-[var(--ink-soft)] mb-3">Selecione para ver as datas e horários disponíveis para esse convênio.</p>
+      <div class="flex flex-wrap gap-2">
+        ${opcoes.map(a => {
+          const ativa = agendaSelecionadaPacienteId === a.id;
+          return `<button onclick="selecionarAgendaPaciente(${a.id})" class="px-3 py-1.5 rounded-full text-xs font-medium border ${ativa ? 'bg-[var(--primary)] text-white border-[var(--primary)]' : 'bg-[var(--bg)] text-[var(--ink)] border-[var(--line)] hover:border-[var(--primary)]'}">${escaparHtml(a.nome)}</button>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
 function telaPacienteAgenda(){
   const prof = getProfissional(state.profissionalSelecionadoId);
+  if (agendaSelecionadaPacienteId == null || !state.agendas.some(a => a.id === agendaSelecionadaPacienteId && a.profissionalId === prof.id)) {
+    agendaSelecionadaPacienteId = agendasDoProfissional(prof.id)[0]?.id ?? null;
+  }
 
   const horariosDoDia = state.horarios
-    .filter(h => h.profissionalId === prof.id && h.data === state.diaSelecionado)
+    .filter(h => h.profissionalId === prof.id && h.data === state.diaSelecionado && (agendaSelecionadaPacienteId ? h.agendaId === agendaSelecionadaPacienteId : true))
     .sort((a,b) => a.hora.localeCompare(b.hora));
 
   return `
@@ -1465,9 +1757,11 @@ function telaPacienteAgenda(){
           <button data-calendar-trigger onclick="toggleCalendario()" class="btn-primary px-4 py-2 flex items-center gap-2 text-sm">
             <span>📅</span> Escolher Data
           </button>
-          ${calendarioAberto ? `<div style="right:0;">${gerarGradeCalendario(prof.id)}</div>` : ''}
+          ${calendarioAberto ? `<div style="right:0;">${gerarGradeCalendario(prof.id, agendaSelecionadaPacienteId)}</div>` : ''}
         </div>
       </div>
+
+      ${seletorAgendaPaciente(prof)}
 
       <div>
         <h3 class="font-medium text-[var(--ink)] mb-3 border-b border-[var(--line)] pb-2">Horários para ${formatarDataCompleta(state.diaSelecionado)}</h3>
@@ -1572,8 +1866,51 @@ function salvarConfiguracoesAgenda(){
   mostrarToast('Regras da agenda atualizadas.'); render();
 }
 
+function seletorAgendas(){
+  const minhas = agendasDoProfissional(state.usuario.id);
+  return `
+    <div class="card p-5 bg-white">
+      <div class="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <h3 class="font-medium mb-1">Suas agendas</h3>
+          <p class="text-xs text-[var(--ink-soft)]">Cada agenda tem sua própria grade de horários — use para separar convênios, particular etc. A agenda selecionada abaixo é usada para criar horários recorrentes, bloqueios e para a grade da aba Agenda.</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        ${minhas.map(a => {
+          if (renomeandoAgendaId === a.id) {
+            return `<span class="inline-flex items-center gap-1">
+              <input id="renome-agenda-${a.id}" value="${escaparHtml(a.nome)}" class="border border-[var(--line)] rounded-lg px-2 py-1.5 text-xs w-36">
+              <button onclick="salvarNomeAgenda(${a.id})" class="btn-primary px-2 py-1.5 text-xs">Salvar</button>
+              <button onclick="cancelarRenomeioAgenda()" class="btn-ghost px-2 py-1.5 text-xs">Cancelar</button>
+            </span>`;
+          }
+          if (confirmandoExclusaoAgendaId === a.id) {
+            return `<span class="inline-flex items-center gap-2 bg-[var(--brick-bg)] rounded-lg px-2.5 py-1.5">
+              <span class="text-xs text-[var(--brick)] font-medium">Excluir "${escaparHtml(a.nome)}"?</span>
+              <button onclick="excluirAgenda(${a.id})" class="btn-brick px-2 py-1 text-xs">Confirmar</button>
+              <button onclick="cancelarExclusaoAgenda()" class="btn-ghost px-2 py-1 text-xs">Cancelar</button>
+            </span>`;
+          }
+          const ativa = agendaSelecionadaId === a.id;
+          return `<span class="inline-flex items-center gap-1">
+            <button onclick="selecionarAgenda(${a.id})" class="px-3 py-1.5 rounded-full text-xs font-medium border ${ativa ? 'bg-[var(--primary)] text-white border-[var(--primary)]' : 'bg-[var(--bg)] text-[var(--ink)] border-[var(--line)] hover:border-[var(--primary)]'}">${escaparHtml(a.nome)}</button>
+            ${ativa ? `<button onclick="iniciarRenomeioAgenda(${a.id})" title="Renomear agenda" class="btn-ghost px-1.5 py-1 text-xs">✏️</button>${minhas.length>1?`<button onclick="pedirExclusaoAgenda(${a.id})" title="Excluir agenda" class="btn-ghost px-1.5 py-1 text-xs">🗑️</button>`:''}` : ''}
+          </span>`;
+        }).join('')}
+      </div>
+      <div class="flex items-center gap-2">
+        <input id="nova-agenda-nome" placeholder="Nome da nova agenda (ex.: Convênio Amil, Particular...)" class="flex-1 border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)]">
+        <button onclick="criarAgenda()" class="btn-ghost px-3 py-2 text-sm font-medium whitespace-nowrap">+ Nova agenda</button>
+      </div>
+    </div>`;
+}
+
 function telaProfissional(){
   const hoje = hojeISO();
+  if (agendaSelecionadaId == null || !state.agendas.some(a => a.id === agendaSelecionadaId && a.profissionalId === state.usuario.id)) {
+    agendaSelecionadaId = agendasDoProfissional(state.usuario.id)[0]?.id ?? null;
+  }
   const horariosHoje = state.horarios
     .filter(h => h.profissionalId === state.usuario.id && h.data === hoje)
     .sort((a,b) => a.hora.localeCompare(b.hora));
@@ -1584,7 +1921,7 @@ function telaProfissional(){
   const livresHoje = horariosHoje.filter(h => h.status === 'livre').length;
 
   const horariosDoDia = state.horarios
-    .filter(h => h.profissionalId === state.usuario.id && h.data === state.diaSelecionado)
+    .filter(h => h.profissionalId === state.usuario.id && h.data === state.diaSelecionado && (agendaSelecionadaId ? h.agendaId === agendaSelecionadaId : true))
     .sort((a,b) => a.hora.localeCompare(b.hora));
 
   const primeiroNome = state.usuario.nome.split(' ')[0];
@@ -1595,14 +1932,12 @@ function telaProfissional(){
     .filter(x => x.horario && Number(x.horario.profissionalId) === Number(state.usuario.id))
     .sort((a,b) => (a.horario.data+a.horario.hora).localeCompare(b.horario.data+b.horario.hora));
   const futuras = consultasDoProfissional.filter(x => x.consulta.status === 'confirmada' && !consultaJaPassou(x.horario));
-  const pendentesRegistro = consultasDoProfissional.filter(x => x.consulta.status === 'confirmada');
-  const canceladasRecentes = consultasDoProfissional.filter(x => x.consulta.status === 'cancelada').slice().reverse().slice(0,8);
-  const encerradasRecentes = consultasDoProfissional.filter(x => ['realizada','faltou'].includes(x.consulta.status)).slice().reverse().slice(0,8);
+  const consultasDaAgendaSelecionada = consultasDoProfissional.filter(x => x.horario.agendaId === agendaSelecionadaId);
+  const pendentesRegistro = consultasDaAgendaSelecionada.filter(x => x.consulta.status === 'confirmada');
+  const canceladasRecentes = consultasDaAgendaSelecionada.filter(x => x.consulta.status === 'cancelada').slice().reverse().slice(0,8);
+  const encerradasRecentes = consultasDaAgendaSelecionada.filter(x => ['realizada','faltou'].includes(x.consulta.status)).slice().reverse().slice(0,8);
 
-  return `
-    ${barraNavegacao()}
-    <div class="max-w-4xl mx-auto px-4 py-6 space-y-6">
-
+  const conteudoPainel = `
       <div>
         <h2 class="font-display text-2xl">Olá, ${primeiroNome} 👋</h2>
         <p class="text-sm text-[var(--ink-soft)]">Aqui está um resumo da sua agenda de hoje.</p>
@@ -1653,11 +1988,89 @@ function telaProfissional(){
         </div>
       </div>
 
+      <div>
+        <div class="flex items-center justify-between border-b border-[var(--line)] pb-2 mb-3">
+          <div><h4 class="text-sm font-medium">Pacientes e anotações privadas</h4><p class="text-xs text-[var(--ink-soft)] mt-1">Consulte aqui todas as observações que você salvou. Elas são privadas e não aparecem para o paciente.</p></div>
+        </div>
+        ${(()=>{
+          const notasPorPaciente={};
+          Object.entries(state.anotacoesPrivadas||{}).forEach(([consultaId,notas])=>{
+            const c=state.consultas.find(x=>String(x.id)===String(consultaId));
+            if(!c || !Array.isArray(notas)) return;
+            const h=getHorario(c.horarioId);
+            if(!h || h.profissionalId!==state.usuario.id) return;
+            const p=getPaciente(c.pacienteId);
+            if(!p) return;
+            if(!notasPorPaciente[p.id]) notasPorPaciente[p.id]={paciente:p,notas:[]};
+            notas.filter(n=>n.profissionalId===state.usuario.id).forEach(n=>notasPorPaciente[p.id].notas.push({...n,consulta:c,horario:h}));
+          });
+          const grupos=Object.values(notasPorPaciente).sort((a,b)=>a.paciente.nome.localeCompare(b.paciente.nome));
+          return grupos.length ? grupos.map(g=>`<div class="card bg-white p-4 mb-3">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+              <div><div class="font-medium">${escaparHtml(g.paciente.nome)}</div><div class="text-xs text-[var(--ink-soft)]">${g.notas.length} ${g.notas.length===1?'anotação privada':'anotações privadas'}</div></div>
+              <span class="badge badge-ocupado">Privado</span>
+            </div>
+            <div class="mt-3 space-y-2">${g.notas.sort((a,b)=>new Date(b.criadoEm)-new Date(a.criadoEm)).map(n=>`<div class="rounded-lg bg-[var(--bg)] border border-[var(--line)] p-3">
+              <div class="text-[11px] text-[var(--ink-soft)] mb-1">${formatarDataCurta(n.horario.data)} · ${n.horario.hora} · Consulta</div>
+              <div class="text-sm leading-relaxed">${escaparHtml(n.texto)}</div>
+            </div>`).join('')}</div>
+          </div>`).join('') : `<div class="card bg-white p-4 text-sm text-[var(--ink-soft)]">Você ainda não salvou nenhuma anotação privada. As observações adicionadas em uma consulta aparecerão aqui.</div>`;
+        })()}
+      </div>
+
+      ${seletorAgendas()}
+
+      <div class="grid lg:grid-cols-2 gap-4">
+        <div class="card p-5 bg-white">
+          <div class="flex items-start justify-between gap-3 mb-4">
+            <div><h3 class="font-medium mb-1">Horário recorrente</h3><p class="text-xs text-[var(--ink-soft)]">Escolha um período e os dias da semana. O sistema cria os horários automaticamente.</p></div>
+            <span class="text-xs rounded-full px-2 py-1 bg-[var(--gold-bg)] text-[var(--primary-dark)]">Automático</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <div><label class="text-xs text-[var(--ink-soft)] block mb-1">Começa em</label><input id="rec-inicio" type="date" value="${state.diaSelecionado}" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)]"></div>
+            <div><label class="text-xs text-[var(--ink-soft)] block mb-1">Termina em</label><input id="rec-fim" type="date" value="${adicionarDiasISO(state.diaSelecionado,30)}" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)]"></div>
+          </div>
+          <div class="mb-4">
+            <div class="flex items-center justify-between mb-2"><label class="text-xs text-[var(--ink-soft)]">Repetir em</label><div class="flex gap-1"><button type="button" onclick="selecionarTodosDiasRecorrencia('uteis')" class="text-[11px] px-2 py-1 rounded-md border border-[var(--line)]">Seg–Sex</button><button type="button" onclick="selecionarTodosDiasRecorrencia('todos')" class="text-[11px] px-2 py-1 rounded-md border border-[var(--line)]">Todos</button></div></div>
+            <div class="grid grid-cols-7 gap-1.5">
+              ${[['0','Dom'],['1','Seg'],['2','Ter'],['3','Qua'],['4','Qui'],['5','Sex'],['6','Sáb']].map(([v,l])=>`<label class="rec-dia-wrap cursor-pointer text-center"><input class="rec-dia" type="checkbox" value="${v}"><span class="flex h-9 items-center justify-center rounded-lg border border-[var(--line)] text-[11px] font-medium">${l}</span></label>`).join('')}
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div><label class="text-xs text-[var(--ink-soft)] block mb-1">Horário</label><input id="rec-hora" type="time" value="09:00" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)]"></div>
+            <div><label class="text-xs text-[var(--ink-soft)] block mb-1">Modalidade</label><select id="rec-modalidade" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)]"><option value="presencial">Presencial</option><option value="online">Online</option></select></div>
+          </div>
+          <button onclick="cadastrarRecorrencia()" class="btn-primary w-full px-4 py-2.5 text-sm font-medium">Criar horários recorrentes</button>
+          ${state.recorrencias.filter(r=>r.profissionalId===state.usuario.id && r.agendaId===agendaSelecionadaId).slice(-3).map(r=>{const nomes=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];return `<div class="mt-3 pt-3 border-t border-[var(--line)] flex items-center justify-between gap-3 text-xs"><span><strong>${r.dias.map(d=>nomes[d]).join(', ')}</strong> · ${r.hora}<br><span class="text-[var(--ink-soft)]">${formatarDataCurta(r.inicio)} → ${formatarDataCurta(r.fim)}</span></span><button onclick="removerRecorrencia(${r.id})" class="text-[var(--brick)]">Remover</button></div>`}).join('')}
+        </div>
+
+        <div class="card p-5 bg-white">
+          <div class="flex items-start justify-between gap-3 mb-4">
+            <div><h3 class="font-medium mb-1">Bloquear período</h3><p class="text-xs text-[var(--ink-soft)]">Férias, folgas ou qualquer indisponibilidade. Selecione o período inteiro de uma vez.</p></div>
+            <span class="text-xs rounded-full px-2 py-1 bg-[var(--brick-bg)] text-[var(--brick)]">Indisponível</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div><label class="text-xs text-[var(--ink-soft)] block mb-1">Primeiro dia</label><input id="bloq-inicio" type="date" value="${state.diaSelecionado}" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)]"></div>
+            <div><label class="text-xs text-[var(--ink-soft)] block mb-1">Último dia</label><input id="bloq-fim" type="date" value="${state.diaSelecionado}" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)]"></div>
+          </div>
+          <label class="text-xs text-[var(--ink-soft)] block mb-1">Motivo</label>
+          <input id="bloq-motivo" placeholder="Ex.: férias, viagem, folga..." class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)] mb-3">
+          <button onclick="bloquearPeriodo()" class="btn-brick w-full px-4 py-2.5 text-sm font-medium">Bloquear período</button>
+          <div class="mt-4 pt-3 border-t border-[var(--line)]">
+            <div class="text-xs font-medium mb-2">Próximos bloqueios</div>
+            <div class="space-y-2 max-h-36 overflow-y-auto">
+              ${state.bloqueios.filter(b=>b.profissionalId===state.usuario.id && b.agendaId===agendaSelecionadaId && b.data>=hojeISO()).sort((a,b)=>a.data.localeCompare(b.data)).map(b=>`<div class="flex items-center justify-between gap-2 text-xs bg-[var(--brick-bg)] rounded-lg px-3 py-2"><span><strong>${formatarDataCurta(b.data)}</strong> · ${escaparHtml(b.motivo)}</span><button onclick="desbloquearData(${b.id})" class="text-[var(--primary-dark)] whitespace-nowrap">Liberar</button></div>`).join('') || '<span class="text-xs text-[var(--ink-soft)]">Nenhum período bloqueado.</span>'}
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+  const conteudoAgenda = `
       <div class="space-y-3">
         <div class="flex items-center justify-between gap-3 border-b border-[var(--line)] pb-2">
           <div>
             <h3 class="font-medium text-[var(--ink)]">Gerenciar consultas</h3>
-            <p class="text-xs text-[var(--ink-soft)] mt-1">Todas as consultas confirmadas ficam aqui até você registrar o resultado.</p>
+            <p class="text-xs text-[var(--ink-soft)] mt-1">Consultas confirmadas na agenda "${escaparHtml(state.agendas.find(a=>a.id===agendaSelecionadaId)?.nome || '')}" que aguardam registro.</p>
           </div>
           <span class="badge badge-ocupado">${pendentesRegistro.length}</span>
         </div>
@@ -1694,128 +2107,55 @@ function telaProfissional(){
         </div>
 
         <div class="mt-5">
-          <div class="flex items-center justify-between border-b border-[var(--line)] pb-2 mb-3">
-            <div><h4 class="text-sm font-medium">Pacientes e anotações privadas</h4><p class="text-xs text-[var(--ink-soft)] mt-1">Consulte aqui todas as observações que você salvou. Elas são privadas e não aparecem para o paciente.</p></div>
-          </div>
-          ${(()=>{
-            const notasPorPaciente={};
-            Object.entries(state.anotacoesPrivadas||{}).forEach(([consultaId,notas])=>{
-              const c=state.consultas.find(x=>String(x.id)===String(consultaId));
-              if(!c || !Array.isArray(notas)) return;
-              const h=getHorario(c.horarioId);
-              if(!h || h.profissionalId!==state.usuario.id) return;
-              const p=getPaciente(c.pacienteId);
-              if(!p) return;
-              if(!notasPorPaciente[p.id]) notasPorPaciente[p.id]={paciente:p,notas:[]};
-              notas.filter(n=>n.profissionalId===state.usuario.id).forEach(n=>notasPorPaciente[p.id].notas.push({...n,consulta:c,horario:h}));
-            });
-            const grupos=Object.values(notasPorPaciente).sort((a,b)=>a.paciente.nome.localeCompare(b.paciente.nome));
-            return grupos.length ? grupos.map(g=>`<div class="card bg-white p-4 mb-3">
-              <div class="flex items-center justify-between gap-3 flex-wrap">
-                <div><div class="font-medium">${escaparHtml(g.paciente.nome)}</div><div class="text-xs text-[var(--ink-soft)]">${g.notas.length} ${g.notas.length===1?'anotação privada':'anotações privadas'}</div></div>
-                <span class="badge badge-ocupado">Privado</span>
-              </div>
-              <div class="mt-3 space-y-2">${g.notas.sort((a,b)=>new Date(b.criadoEm)-new Date(a.criadoEm)).map(n=>`<div class="rounded-lg bg-[var(--bg)] border border-[var(--line)] p-3">
-                <div class="text-[11px] text-[var(--ink-soft)] mb-1">${formatarDataCurta(n.horario.data)} · ${n.horario.hora} · Consulta</div>
-                <div class="text-sm leading-relaxed">${escaparHtml(n.texto)}</div>
-              </div>`).join('')}</div>
-            </div>`).join('') : `<div class="card bg-white p-4 text-sm text-[var(--ink-soft)]">Você ainda não salvou nenhuma anotação privada. As observações adicionadas em uma consulta aparecerão aqui.</div>`;
-          })()}
-        </div>
-
-        <div class="mt-5">
           <div class="flex items-center justify-between border-b border-[var(--line)] pb-2 mb-3"><div><h4 class="text-sm font-medium">Cancelamentos recentes</h4><p class="text-xs text-[var(--ink-soft)] mt-1">Nada é apagado: cancelamentos continuam registrados.</p></div></div>
           ${canceladasRecentes.length ? canceladasRecentes.map(c=>{const p=getPaciente(c.consulta.pacienteId);return `<div class="card bg-white p-3 flex items-center justify-between gap-3 mb-2"><div><div class="text-sm font-medium">${escaparHtml(p?.nome||'Paciente')}</div><div class="text-xs text-[var(--ink-soft)]">${formatarDataCurta(c.horario.data)} · ${c.horario.hora} · ${c.horario.modalidade==='online'?'💻 Online':'📍 Presencial'}</div></div><span class="badge badge-concluido">Cancelada</span></div>`}).join('') : `<div class="card bg-white p-4 text-sm text-[var(--ink-soft)]">Nenhum cancelamento recente.</div>`}
         </div>
       </div>
 
-      <div class="grid lg:grid-cols-3 gap-4">
-        <div class="card p-5 bg-white lg:col-span-2">
-          <h3 class="font-medium mb-1">Lembretes e confirmação</h3>
-          <p class="text-xs text-[var(--ink-soft)] mb-4">Configure quando o cliente recebe lembretes e quando a confirmação passa a ser obrigatória.</p>
-          <div class="grid sm:grid-cols-2 gap-3">
-            <label class="flex items-center gap-2 text-sm"><input id="cfg-24h" type="checkbox" ${state.configuracoes.lembrete24h?'checked':''}> Lembrete 24h antes</label>
-            <label class="flex items-center gap-2 text-sm"><input id="cfg-2h" type="checkbox" ${state.configuracoes.lembrete2h?'checked':''}> Lembrete 2h antes</label>
-            <label class="text-sm">Confirmação obrigatória com <input id="cfg-conf" type="number" min="1" max="48" value="${state.configuracoes.confirmacaoHoras}" class="w-16 border rounded px-2 py-1"> h de antecedência</label>
-            <label class="text-sm">Cancelamento permitido até <input id="cfg-canc" type="number" min="0" max="72" value="${state.configuracoes.cancelamentoHoras}" class="w-16 border rounded px-2 py-1"> h antes</label>
-          </div>
-          <button onclick="salvarConfiguracoesAgenda()" class="btn-primary px-4 py-2 text-sm mt-4">Salvar regras</button>
+      ${seletorAgendas()}
+
+      <div class="flex items-center justify-between bg-[var(--surface)] p-4 rounded-xl border border-[var(--line)] shadow-sm">
+        <div>
+          <h2 class="font-display text-2xl">Sua Agenda${agendaSelecionadaId ? ` <span class="text-base text-[var(--ink-soft)] font-normal">· ${escaparHtml(state.agendas.find(a=>a.id===agendaSelecionadaId)?.nome || '')}</span>` : ''}</h2>
+          <p class="text-sm text-[var(--ink-soft)] capitalize">${formatarDataCompleta(state.diaSelecionado)}</p>
+        </div>
+        <div class="relative">
+          <button data-calendar-trigger onclick="toggleCalendario()" class="btn-primary px-4 py-2 flex items-center gap-2 text-sm">
+            <span>📅</span> Gerenciar Data
+          </button>
+          ${calendarioAberto ? `<div style="right:0;">${gerarGradeCalendario(state.usuario.id, agendaSelecionadaId, true)}</div>` : ''}
         </div>
       </div>
-      <div class="grid md:grid-cols-3 gap-6">
-        <div class="md:col-span-2 space-y-5">
 
-          <div class="flex items-center justify-between bg-[var(--surface)] p-4 rounded-xl border border-[var(--line)] shadow-sm">
-            <div>
-              <h2 class="font-display text-2xl">Sua Agenda</h2>
-              <p class="text-sm text-[var(--ink-soft)] capitalize">${formatarDataCompleta(state.diaSelecionado)}</p>
-            </div>
-            <div class="relative">
-              <button data-calendar-trigger onclick="toggleCalendario()" class="btn-primary px-4 py-2 flex items-center gap-2 text-sm">
-                <span>📅</span> Gerenciar Data
-              </button>
-              ${calendarioAberto ? `<div style="right:0;">${gerarGradeCalendario(state.usuario.id)}</div>` : ''}
-            </div>
-          </div>
+      <div class="space-y-3 pt-2">
+        ${horariosDoDia.length ? horariosDoDia.map(h => cartaoHorario(h, 'profissional')).join('') : `<div class="card p-7 text-center bg-white"><div class="text-2xl mb-2">🗓️</div><h4 class="font-display text-lg">Dia sem horários cadastrados</h4><p class="text-sm text-[var(--ink-soft)] mt-2">Use os horários recorrentes na aba Início para criar sua agenda ou escolha outra data no calendário.</p></div>`}
+      </div>`;
 
-          <div class="grid lg:grid-cols-2 gap-4">
-            <div class="card p-5 bg-white">
-              <div class="flex items-start justify-between gap-3 mb-4">
-                <div><h3 class="font-medium mb-1">Horário recorrente</h3><p class="text-xs text-[var(--ink-soft)]">Escolha um período e os dias da semana. O sistema cria os horários automaticamente.</p></div>
-                <span class="text-xs rounded-full px-2 py-1 bg-[var(--gold-bg)] text-[var(--primary-dark)]">Automático</span>
-              </div>
-              <div class="grid grid-cols-2 gap-3 mb-4">
-                <div><label class="text-xs text-[var(--ink-soft)] block mb-1">Começa em</label><input id="rec-inicio" type="date" value="${state.diaSelecionado}" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)]"></div>
-                <div><label class="text-xs text-[var(--ink-soft)] block mb-1">Termina em</label><input id="rec-fim" type="date" value="${adicionarDiasISO(state.diaSelecionado,30)}" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)]"></div>
-              </div>
-              <div class="mb-4">
-                <div class="flex items-center justify-between mb-2"><label class="text-xs text-[var(--ink-soft)]">Repetir em</label><div class="flex gap-1"><button type="button" onclick="selecionarTodosDiasRecorrencia('uteis')" class="text-[11px] px-2 py-1 rounded-md border border-[var(--line)]">Seg–Sex</button><button type="button" onclick="selecionarTodosDiasRecorrencia('todos')" class="text-[11px] px-2 py-1 rounded-md border border-[var(--line)]">Todos</button></div></div>
-                <div class="grid grid-cols-7 gap-1.5">
-                  ${[['0','Dom'],['1','Seg'],['2','Ter'],['3','Qua'],['4','Qui'],['5','Sex'],['6','Sáb']].map(([v,l])=>`<label class="rec-dia-wrap cursor-pointer text-center"><input class="rec-dia" type="checkbox" value="${v}"><span class="flex h-9 items-center justify-center rounded-lg border border-[var(--line)] text-[11px] font-medium">${l}</span></label>`).join('')}
-                </div>
-              </div>
-              <div class="grid grid-cols-2 gap-3 mb-3">
-                <div><label class="text-xs text-[var(--ink-soft)] block mb-1">Horário</label><input id="rec-hora" type="time" value="09:00" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)]"></div>
-                <div><label class="text-xs text-[var(--ink-soft)] block mb-1">Modalidade</label><select id="rec-modalidade" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)]"><option value="presencial">Presencial</option><option value="online">Online</option></select></div>
-              </div>
-              <button onclick="cadastrarRecorrencia()" class="btn-primary w-full px-4 py-2.5 text-sm font-medium">Criar horários recorrentes</button>
-              ${state.recorrencias.filter(r=>r.profissionalId===state.usuario.id).slice(-3).map(r=>{const nomes=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];return `<div class="mt-3 pt-3 border-t border-[var(--line)] flex items-center justify-between gap-3 text-xs"><span><strong>${r.dias.map(d=>nomes[d]).join(', ')}</strong> · ${r.hora}<br><span class="text-[var(--ink-soft)]">${formatarDataCurta(r.inicio)} → ${formatarDataCurta(r.fim)}</span></span><button onclick="removerRecorrencia(${r.id})" class="text-[var(--brick)]">Remover</button></div>`}).join('')}
-            </div>
-
-            <div class="card p-5 bg-white">
-              <div class="flex items-start justify-between gap-3 mb-4">
-                <div><h3 class="font-medium mb-1">Bloquear período</h3><p class="text-xs text-[var(--ink-soft)]">Férias, folgas ou qualquer indisponibilidade. Selecione o período inteiro de uma vez.</p></div>
-                <span class="text-xs rounded-full px-2 py-1 bg-[var(--brick-bg)] text-[var(--brick)]">Indisponível</span>
-              </div>
-              <div class="grid grid-cols-2 gap-3 mb-3">
-                <div><label class="text-xs text-[var(--ink-soft)] block mb-1">Primeiro dia</label><input id="bloq-inicio" type="date" value="${state.diaSelecionado}" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)]"></div>
-                <div><label class="text-xs text-[var(--ink-soft)] block mb-1">Último dia</label><input id="bloq-fim" type="date" value="${state.diaSelecionado}" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)]"></div>
-              </div>
-              <label class="text-xs text-[var(--ink-soft)] block mb-1">Motivo</label>
-              <input id="bloq-motivo" placeholder="Ex.: férias, viagem, folga..." class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)] mb-3">
-              <button onclick="bloquearPeriodo()" class="btn-brick w-full px-4 py-2.5 text-sm font-medium">Bloquear período</button>
-              <div class="mt-4 pt-3 border-t border-[var(--line)]">
-                <div class="text-xs font-medium mb-2">Próximos bloqueios</div>
-                <div class="space-y-2 max-h-36 overflow-y-auto">
-                  ${state.bloqueios.filter(b=>b.profissionalId===state.usuario.id && b.data>=hojeISO()).sort((a,b)=>a.data.localeCompare(b.data)).map(b=>`<div class="flex items-center justify-between gap-2 text-xs bg-[var(--brick-bg)] rounded-lg px-3 py-2"><span><strong>${formatarDataCurta(b.data)}</strong> · ${escaparHtml(b.motivo)}</span><button onclick="desbloquearData(${b.id})" class="text-[var(--primary-dark)] whitespace-nowrap">Liberar</button></div>`).join('') || '<span class="text-xs text-[var(--ink-soft)]">Nenhum período bloqueado.</span>'}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="space-y-3 pt-2">
-            ${horariosDoDia.length ? horariosDoDia.map(h => cartaoHorario(h, 'profissional')).join('') : `<div class="card p-7 text-center bg-white"><div class="text-2xl mb-2">🗓️</div><h4 class="font-display text-lg">Dia sem horários cadastrados</h4><p class="text-sm text-[var(--ink-soft)] mt-2">Use os horários recorrentes acima para criar sua agenda ou escolha outra data no calendário.</p></div>`}
-          </div>
+  const conteudoConfig = `
+      <div class="card p-5 bg-white">
+        <h3 class="font-medium mb-1">Lembretes e confirmação</h3>
+        <p class="text-xs text-[var(--ink-soft)] mb-4">Configure quando o cliente recebe lembretes e quando a confirmação passa a ser obrigatória.</p>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <label class="flex items-center gap-2 text-sm"><input id="cfg-24h" type="checkbox" ${state.configuracoes.lembrete24h?'checked':''}> Lembrete 24h antes</label>
+          <label class="flex items-center gap-2 text-sm"><input id="cfg-2h" type="checkbox" ${state.configuracoes.lembrete2h?'checked':''}> Lembrete 2h antes</label>
+          <label class="text-sm">Confirmação obrigatória com <input id="cfg-conf" type="number" min="1" max="48" value="${state.configuracoes.confirmacaoHoras}" class="w-16 border rounded px-2 py-1"> h de antecedência</label>
+          <label class="text-sm">Cancelamento permitido até <input id="cfg-canc" type="number" min="0" max="72" value="${state.configuracoes.cancelamentoHoras}" class="w-16 border rounded px-2 py-1"> h antes</label>
         </div>
-
-        <div class="space-y-5">
-          <div class="card p-4 bg-white">
-            <h3 class="font-medium mb-2">Perfil</h3>
-            <p class="text-sm"><strong>Nome:</strong> ${state.usuario.nome}</p>
-            <p class="text-sm"><strong>Profissão:</strong> ${state.usuario.profissao}</p>
-          </div>
-        </div>
+        <button onclick="salvarConfiguracoesAgenda()" class="btn-primary px-4 py-2 text-sm mt-4">Salvar regras</button>
       </div>
+
+      <div class="card p-4 bg-white">
+        <h3 class="font-medium mb-2">Perfil</h3>
+        <p class="text-sm"><strong>Nome:</strong> ${state.usuario.nome}</p>
+        <p class="text-sm"><strong>Profissão:</strong> ${state.usuario.profissao}</p>
+      </div>`;
+
+  const conteudoAba = abaProfissional === 'agenda' ? conteudoAgenda : abaProfissional === 'config' ? conteudoConfig : conteudoPainel;
+
+  return `
+    ${barraNavegacao()}
+    <div class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      ${conteudoAba}
     </div>`;
 }
 
@@ -1823,9 +2163,13 @@ function telaProfissional(){
 
 function barraNavegacao(){
   const ehPaciente = state.usuario.tipo === 'paciente';
-  const naoLidas = state.notificacoes.filter(n => { const alvo = ehPaciente ? n.pacienteId === state.usuario.id : n.profissionalId === state.usuario.id; return alvo && !n.lida; }).length;
+  const ehClinica = state.usuario.tipo === 'clinica';
+  const naoLidas = ehClinica ? 0 : state.notificacoes.filter(n => { const alvo = ehPaciente ? n.pacienteId === state.usuario.id : n.profissionalId === state.usuario.id; return alvo && !n.lida; }).length;
 
-  const barraInferior = ehPaciente ? `
+  const barraInferior = ehClinica ? `
+    <nav class="mobile-bottombar">
+      <button onclick="sair()"><span class="ic">↩️</span>Sair</button>
+    </nav>` : ehPaciente ? `
     <nav class="mobile-bottombar">
       <button onclick="irParaAba('profissionais')" class="${abaPaciente === 'profissionais' ? 'active' : ''}"><span class="ic">🔎</span>Clínicas</button>
       <button onclick="irParaAba('consultas')" class="${abaPaciente === 'consultas' ? 'active' : ''}"><span class="ic">📋</span>Consultas</button>
@@ -1833,7 +2177,10 @@ function barraNavegacao(){
       <button onclick="sair()"><span class="ic">↩️</span>Sair</button>
     </nav>` : `
     <nav class="mobile-bottombar">
-      <button onclick="toggleNotificacoes()" class="${notificacoesAbertas ? 'active' : ''}" style="position:relative;"><span class="ic">🔔</span>Avisos${naoLidas > 0 ? `<span class="notif-dot" style="top:-2px;right:38%;">${naoLidas}</span>` : ''}</button>
+      <button onclick="irParaAbaProfissional('painel')" class="${abaProfissional === 'painel' ? 'active' : ''}"><span class="ic">🏠</span>Início</button>
+      <button onclick="irParaAbaProfissional('agenda')" class="${abaProfissional === 'agenda' ? 'active' : ''}"><span class="ic">🗓️</span>Agenda</button>
+      <button onclick="toggleNotificacoes()" class="${notificacoesAbertas ? 'active' : ''}" style="position:relative;"><span class="ic">🔔</span>Avisos${naoLidas > 0 ? `<span class="notif-dot" style="top:-2px;right:14%;">${naoLidas}</span>` : ''}</button>
+      <button onclick="irParaAbaProfissional('config')" class="${abaProfissional === 'config' ? 'active' : ''}"><span class="ic">⚙️</span>Config</button>
       <button onclick="sair()"><span class="ic">↩️</span>Sair</button>
     </nav>`;
 
@@ -1844,25 +2191,33 @@ function barraNavegacao(){
           <span aria-hidden="true" class="inline-block w-2 h-2 rounded-full" style="background:var(--gold);"></span>Fluxo
         </span>
         <div class="flex items-center gap-2 sm:gap-3 text-sm min-w-0">
+          ${!ehClinica ? `
           <div class="relative hidden sm:block">
             <button onclick="toggleNotificacoes()" class="btn-ghost px-2.5 py-1.5 text-sm relative" title="Notificações">
               🔔${naoLidas > 0 ? `<span class="notif-dot">${naoLidas}</span>` : ''}
             </button>
             ${notificacoesAbertas ? painelNotificacoes() : ''}
-          </div>
-          <span class="text-[var(--ink-soft)] font-medium truncate max-w-[120px] sm:max-w-none">${ehPaciente ? '👤' : '🩺'} ${state.usuario.nome}</span>
+          </div>` : ''}
+          <span class="text-[var(--ink-soft)] font-medium truncate max-w-[120px] sm:max-w-none">${ehClinica ? '🏥' : ehPaciente ? '👤' : '🩺'} ${state.usuario.nome}</span>
           <button onclick="sair()" class="btn-ghost px-3 py-1.5 text-xs hidden sm:inline-flex">Sair</button>
         </div>
       </div>
-      ${ehPaciente ? `
+      ${ehClinica ? '' : ehPaciente ? `
       <div class="max-w-5xl mx-auto px-4 pb-3 hidden sm:block">
         <div class="tab-row">
           <span class="tab-btn ${abaPaciente === 'profissionais' ? 'active' : ''}" onclick="irParaAba('profissionais')">Clínicas</span>
           <span class="tab-btn ${abaPaciente === 'consultas' ? 'active' : ''}" onclick="irParaAba('consultas')">Minhas Consultas</span>
         </div>
-      </div>` : ''}
+      </div>` : `
+      <div class="max-w-5xl mx-auto px-4 pb-3 hidden sm:block">
+        <div class="tab-row">
+          <span class="tab-btn ${abaProfissional === 'painel' ? 'active' : ''}" onclick="irParaAbaProfissional('painel')">Início</span>
+          <span class="tab-btn ${abaProfissional === 'agenda' ? 'active' : ''}" onclick="irParaAbaProfissional('agenda')">Agenda</span>
+          <span class="tab-btn ${abaProfissional === 'config' ? 'active' : ''}" onclick="irParaAbaProfissional('config')">Configurações</span>
+        </div>
+      </div>`}
     </div>
-    <div class="sm:hidden">${notificacoesAbertas ? painelNotificacoes() : ''}</div>
+    <div class="sm:hidden">${!ehClinica && notificacoesAbertas ? painelNotificacoes() : ''}</div>
     ${barraInferior}`;
 }
 
@@ -1954,6 +2309,8 @@ function render(){
       app.innerHTML = telaLogin();
     } else if (state.usuario.tipo === 'paciente') {
       app.innerHTML = telaPaciente();
+    } else if (state.usuario.tipo === 'clinica') {
+      app.innerHTML = telaClinica();
     } else {
       app.innerHTML = telaProfissional();
     }
