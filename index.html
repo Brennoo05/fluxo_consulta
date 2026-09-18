@@ -13,27 +13,27 @@
 
 <style>
   :root{
-    --bg:#09090b;
-    --bg-soft:#18181b;
-    --surface:rgba(24,24,27,0.65);
-    --surface-hover:rgba(39,39,42,0.85);
-    --ink:#f8fafc;
-    --ink-soft:#94a3b8;
-    --primary:#38bdf8;
-    --primary-dark:#0284c7;
-    --primary-glow:rgba(56,189,248,.4);
-    --gold:#34d399;
-    --gold-bg:rgba(52,211,153,.15);
-    --brick:#f43f5e;
-    --brick-bg:rgba(244,63,94,.15);
-    --line:rgba(255,255,255,.12);
-    --line-soft:rgba(255,255,255,.05);
+    --bg:#f4f6f8;
+    --bg-soft:#eceff2;
+    --surface:#ffffff;
+    --surface-hover:#f8fafc;
+    --ink:#1f2937;
+    --ink-soft:#6b7280;
+    --primary:#2f8f7f;
+    --primary-dark:#256f63;
+    --primary-glow:rgba(47,143,127,.16);
+    --gold:#2f9e6e;
+    --gold-bg:rgba(47,158,110,.12);
+    --brick:#d9534f;
+    --brick-bg:rgba(217,83,79,.1);
+    --line:rgba(31,41,55,.1);
+    --line-soft:rgba(31,41,55,.05);
     --radius-sm:8px;
     --radius-md:12px;
     --radius-lg:16px;
-    --shadow-sm:0 4px 6px -1px rgba(0,0,0,.3);
-    --shadow-md:0 10px 15px -3px rgba(0,0,0,.4);
-    --shadow-lg:0 20px 40px -8px rgba(0,0,0,.55);
+    --shadow-sm:0 1px 2px rgba(31,41,55,.06), 0 1px 3px rgba(31,41,55,.08);
+    --shadow-md:0 4px 10px rgba(31,41,55,.08);
+    --shadow-lg:0 12px 28px rgba(31,41,55,.12);
   }
   *{ box-sizing:border-box; }
   html{ scroll-behavior:smooth; overflow-x:hidden; }
@@ -45,7 +45,6 @@
     -webkit-font-smoothing:antialiased;
     margin:0; min-width:0; min-height:100vh; overflow-x:hidden;
   }
-  #bg-canvas{ position:fixed; inset:0; width:100vw; height:100vh; z-index:-1; pointer-events:none; }
   h1,h2,h3,.font-display{ font-family:'Outfit', sans-serif; letter-spacing:-.02em; }
   .tabular{ font-variant-numeric: tabular-nums; }
   a,button,[role="button"],input,select,textarea{ outline-offset:2px; }
@@ -53,7 +52,7 @@
   input:focus-visible,select:focus-visible,textarea:focus-visible{ outline:none; border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-glow); }
   input,select,textarea{ font:inherit; transition:border-color .15s ease, box-shadow .15s ease; }
   input:not([type=checkbox]):not([type=radio]),select,textarea{
-    background:rgba(0,0,0,.3) !important; border:1px solid var(--line) !important; color:var(--ink) !important;
+    background:#ffffff !important; border:1px solid var(--line) !important; color:var(--ink) !important;
   }
   input:not([type=checkbox]):not([type=radio]):not([type=date]):not([type=time]),
   select{ min-height:42px; }
@@ -71,16 +70,15 @@
 
   .card{
     background:var(--surface) !important;
-    backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
     border:1px solid var(--line) !important;
     border-radius:var(--radius-lg);
     box-shadow:var(--shadow-sm);
-    transition:all .3s cubic-bezier(.4,0,.2,1);
+    transition:box-shadow .2s ease, border-color .2s ease, transform .2s ease;
   }
   a.card:hover,.card.is-interactive:hover,.card[onclick]:hover{
-    box-shadow:var(--shadow-md), 0 0 20px var(--primary-glow);
-    border-color:rgba(56,189,248,.5) !important;
-    transform:translateY(-2px);
+    box-shadow:var(--shadow-md);
+    border-color:rgba(47,143,127,.35) !important;
+    transform:translateY(-1px);
     background:var(--surface-hover) !important;
   }
 
@@ -91,15 +89,15 @@
   }
   .btn-primary:active,.btn-ghost:active,.btn-brick:active{ transform:scale(.97); }
   .btn-primary{
-    background:linear-gradient(135deg, var(--primary-dark), var(--primary)); color:#fff;
-    border-radius:var(--radius-md); box-shadow:0 4px 12px var(--primary-glow); border:none;
+    background:var(--primary); color:#fff;
+    border-radius:var(--radius-md); box-shadow:none; border:none;
   }
-  .btn-primary:hover{ background:linear-gradient(135deg, var(--primary), #7dd3fc); box-shadow:0 6px 16px rgba(56,189,248,.6); }
+  .btn-primary:hover{ background:var(--primary-dark); }
   .btn-primary:disabled{ opacity:.6; cursor:not-allowed; transform:none; box-shadow:none; }
-  .btn-ghost{ background:rgba(255,255,255,.05); border:1px solid var(--line); color:var(--ink); border-radius:var(--radius-md); }
-  .btn-ghost:hover{ border-color:var(--primary-glow); color:#fff; background:rgba(255,255,255,.1); }
-  .btn-brick{ background:var(--brick-bg); border:1px solid rgba(244,63,94,.3); color:#fb7185; border-radius:var(--radius-md); }
-  .btn-brick:hover{ background:rgba(244,63,94,.25); border-color:rgba(244,63,94,.5); color:#fff; }
+  .btn-ghost{ background:#fff; border:1px solid var(--line); color:var(--ink); border-radius:var(--radius-md); }
+  .btn-ghost:hover{ border-color:var(--primary); color:var(--primary-dark); background:var(--bg-soft); }
+  .btn-brick{ background:var(--brick-bg); border:1px solid rgba(217,83,79,.3); color:var(--brick); border-radius:var(--radius-md); }
+  .btn-brick:hover{ background:rgba(217,83,79,.18); border-color:rgba(217,83,79,.5); color:#b93430; }
   .badge{ font-size:.7rem; font-weight:600; padding:.25rem .6rem; border-radius:999px; letter-spacing:.01em; display:inline-flex; align-items:center; gap:.3rem; white-space:nowrap; font-family:'Outfit', sans-serif; border:1px solid transparent; }
   .badge-livre{ background:var(--gold-bg); color:var(--gold); border-color:rgba(52,211,153,.3); }
   .badge-ocupado{ background:var(--primary-glow); color:var(--primary); border-color:rgba(56,189,248,.3); }
@@ -116,10 +114,10 @@
     font-size:.85rem; cursor:pointer; position:relative; transition:all .15s ease; border:1px solid transparent;
   }
   .cal-cell:hover{ background:rgba(255,255,255,.08); }
-  .cal-cell.selected{ background:var(--primary); color:#00131c; font-weight:700; box-shadow:0 4px 12px var(--primary-glow); }
-  .cal-cell.today{ font-weight:700; border-color:var(--primary); color:var(--primary); }
-  .cal-dot{ position:absolute; bottom:4px; width:4px; height:4px; border-radius:999px; background:var(--primary); box-shadow:0 0 6px var(--primary); }
-  .cal-cell.selected .cal-dot{ background:#00131c; box-shadow:none; }
+  .cal-cell.selected{ background:var(--primary); color:#fff; font-weight:700; }
+  .cal-cell.today{ font-weight:700; border-color:var(--primary); color:var(--primary-dark); }
+  .cal-dot{ position:absolute; bottom:4px; width:4px; height:4px; border-radius:999px; background:var(--primary); }
+  .cal-cell.selected .cal-dot{ background:#fff; box-shadow:none; }
   .cal-cell.blocked{ background:var(--brick-bg); color:#fb7185; text-decoration:line-through; }
   .cal-block{ position:absolute; bottom:2px; font-size:11px; font-weight:700; color:var(--brick); }
   .cal-dots-wrap{ position:absolute; bottom:3px; left:50%; transform:translateX(-50%); display:flex; gap:2px; }
@@ -131,30 +129,28 @@
   ::-webkit-scrollbar-track{ background:transparent; }
 
   .modal-overlay{
-    position:fixed; inset:0; background:rgba(0,0,0,.6); backdrop-filter:blur(8px);
+    position:fixed; inset:0; background:rgba(31,41,55,.45);
     display:flex; align-items:center; justify-content:center; z-index:50; padding:1rem;
     animation:fadeIn .2s ease-out;
   }
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
   .stat-card{
-    background:linear-gradient(145deg, rgba(255,255,255,.05), rgba(255,255,255,.01));
+    background:var(--bg-soft);
     border:1px solid var(--line); border-radius:var(--radius-md);
     padding:1.1rem .9rem; text-align:center; position:relative; overflow:hidden;
-    box-shadow:var(--shadow-sm); backdrop-filter:blur(10px);
+    box-shadow:var(--shadow-sm);
   }
-  .stat-card::before{ content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg, transparent, var(--primary), transparent); }
-  .stat-num{ font-family:'Outfit', sans-serif; font-size:1.9rem; color:#fff; line-height:1; font-weight:600; text-shadow:0 0 15px rgba(255,255,255,.25); }
+  .stat-num{ font-family:'Outfit', sans-serif; font-size:1.9rem; color:var(--primary-dark); line-height:1; font-weight:600; }
   .avatar-circle{
     width:56px; height:56px; border-radius:999px;
-    background:linear-gradient(135deg, rgba(56,189,248,.2), rgba(139,92,246,.2));
-    border:1px solid rgba(255,255,255,.1);
+    background:var(--gold-bg);
+    border:1px solid var(--line);
     display:flex; align-items:center; justify-content:center; font-size:1.6rem; flex-shrink:0;
-    box-shadow:0 0 15px var(--primary-glow);
   }
   .notif-panel{
     position:absolute; right:0; top:calc(100% + 10px); width:340px; max-width:88vw; max-height:420px;
     overflow-y:auto; z-index:40; box-shadow:var(--shadow-lg); animation:popIn .15s ease-out;
-    background:var(--surface); border:1px solid var(--line); backdrop-filter:blur(16px); border-radius:var(--radius-md);
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md);
   }
   @keyframes popIn{ from{opacity:0; transform:translateY(-6px) scale(.98);} to{opacity:1; transform:translateY(0) scale(1);} }
   .notif-dot{
@@ -162,27 +158,27 @@
     font-weight:700; border-radius:999px; min-width:16px; height:16px; display:flex; align-items:center;
     justify-content:center; padding:0 4px; box-shadow:0 0 0 2px var(--bg);
   }
-  .tab-row{ display:inline-flex; gap:4px; background:rgba(0,0,0,.3); padding:4px; border-radius:12px; border:1px solid rgba(255,255,255,.05); }
+  .tab-row{ display:inline-flex; gap:4px; background:var(--bg-soft); padding:4px; border-radius:12px; border:1px solid var(--line); }
   .tab-btn{ padding:.5rem 1.1rem; border-radius:8px; font-size:.83rem; font-weight:500; cursor:pointer; transition:all .2s ease; font-family:'Outfit', sans-serif; }
-  .tab-btn.active{ background:var(--surface); color:#fff; box-shadow:var(--shadow-sm); border:1px solid var(--line); }
+  .tab-btn.active{ background:var(--surface); color:var(--primary-dark); box-shadow:var(--shadow-sm); border:1px solid var(--line); }
   .tab-btn:not(.active){ background:transparent; color:var(--ink-soft); }
-  .tab-btn:not(.active):hover{ color:#fff; background:rgba(255,255,255,.05); }
+  .tab-btn:not(.active):hover{ color:var(--ink); background:rgba(31,41,55,.04); }
   .toast-wrap{ position:fixed; right:1.25rem; bottom:1.25rem; z-index:100; display:flex; flex-direction:column; gap:.65rem; width:min(360px,calc(100vw - 2.5rem)); }
   .toast{
-    background:rgba(24,24,27,.9); backdrop-filter:blur(12px); border:1px solid var(--line); border-radius:var(--radius-md);
-    padding:.85rem 1rem; box-shadow:0 10px 30px rgba(0,0,0,.5); display:flex; align-items:flex-start; gap:.65rem;
-    animation:toastIn .25s ease; position:relative; overflow:hidden; color:#fff;
+    background:#fff; border:1px solid var(--line); border-radius:var(--radius-md);
+    padding:.85rem 1rem; box-shadow:var(--shadow-lg); display:flex; align-items:flex-start; gap:.65rem;
+    animation:toastIn .25s ease; position:relative; overflow:hidden; color:var(--ink);
   }
   .toast::after{ content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--primary); }
-  .toast.success::after{ background:var(--gold); box-shadow:0 0 10px var(--gold); }
-  .toast.error::after{ background:var(--brick); box-shadow:0 0 10px var(--brick); }
-  .toast.info::after{ background:var(--primary); box-shadow:0 0 10px var(--primary); }
+  .toast.success::after{ background:var(--gold); }
+  .toast.error::after{ background:var(--brick); }
+  .toast.info::after{ background:var(--primary); }
   @keyframes toastIn{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
   .calendar-popover{ width:290px; max-width:calc(100vw - 2rem); }
   .rec-dia-wrap{ position:relative; }
   .rec-dia{ position:absolute; opacity:0; width:1px; height:1px; pointer-events:none; }
   .rec-dia + span{ transition:all .15s ease; user-select:none; }
-  .rec-dia:checked + span{ background:var(--primary); color:#00131c; border-color:var(--primary); box-shadow:0 2px 8px var(--primary-glow); }
+  .rec-dia:checked + span{ background:var(--primary); color:#fff; border-color:var(--primary); }
   .rec-dia:focus-visible + span{ outline:2px solid var(--primary); outline-offset:2px; }
   @media (max-width:640px){
     .calendar-popover{ position:fixed !important; left:50% !important; right:auto !important; top:6rem !important; transform:translateX(-50%); width:min(290px,calc(100vw - 1.5rem)); margin:0 !important; }
@@ -193,9 +189,9 @@
   @media (max-width:768px){
     .mobile-bottombar{
       display:flex; position:fixed; left:0; right:0; bottom:0; z-index:60;
-      background:rgba(9,9,11,.9); backdrop-filter:blur(16px); border-top:1px solid var(--line);
+      background:rgba(255,255,255,.97); border-top:1px solid var(--line);
       padding:.4rem .5rem calc(.4rem + env(safe-area-inset-bottom));
-      box-shadow:0 -8px 24px -12px rgba(0,0,0,.5);
+      box-shadow:0 -4px 12px rgba(31,41,55,.06);
     }
     .mobile-bottombar button{
       flex:1; display:flex; flex-direction:column; align-items:center; gap:.15rem;
@@ -276,14 +272,22 @@
   }
   .clinica-icon{
     width:56px; height:56px; border-radius:16px;
-    background:linear-gradient(135deg, rgba(255,255,255,.1), rgba(255,255,255,.02));
-    border:1px solid rgba(255,255,255,.1);
+    background:var(--bg-soft);
+    border:1px solid var(--line);
     display:flex; align-items:center; justify-content:center; font-size:1.7rem; flex-shrink:0;
-    box-shadow:0 4px 15px rgba(0,0,0,.2);
   }
 
   #fluxo-hero{ display:block; margin:0 auto; }
   @media (prefers-reduced-motion: reduce){ #fluxo-hero{ opacity:.85; } }
+
+  .agenda-view-toggle{display:inline-flex;gap:3px;background:var(--bg-soft);padding:3px;border:1px solid var(--line);border-radius:10px;}
+  .agenda-view-toggle button{border:0;background:transparent;padding:.45rem .7rem;border-radius:7px;font-size:.75rem;font-weight:600;color:var(--ink-soft);cursor:pointer;}
+  .agenda-view-toggle button.active{background:var(--surface);color:var(--primary-dark);box-shadow:var(--shadow-sm);}
+  .agenda-month-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;}
+  .agenda-week-day{min-height:120px;}
+  .report-bar{height:8px;border-radius:99px;background:var(--bg-soft);overflow:hidden;}
+  .report-bar > span{display:block;height:100%;background:var(--primary);border-radius:99px;}
+  .notification-category{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);font-weight:700;margin-bottom:.35rem;}
 
   /* Overrides para as classes utilitárias Tailwind estáticas usadas nos templates JS */
   .bg-white{ background-color:var(--surface) !important; color:var(--ink) !important; }
@@ -292,67 +296,10 @@
 </head>
 <body>
 
-<canvas id="bg-canvas"></canvas>
-
 <div id="app" class="min-h-screen relative z-10"></div>
 
 <script>
-// --- ANIMAÇÃO DE FUNDO (partículas conectadas) ---
-(function(){
- try {
-  const canvas = document.getElementById('bg-canvas');
-  if (!canvas || !canvas.getContext) return;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
-  let w, h;
-  const particles = [];
-  const reduzMovimento = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  function resize(){ w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
-  window.addEventListener('resize', resize);
-  resize();
-
-  function Particle(){
-    this.x = Math.random()*w; this.y = Math.random()*h;
-    this.size = Math.random()*2 + .5;
-    this.speedX = Math.random()*.5 - .25; this.speedY = Math.random()*.5 - .25;
-    this.opacity = Math.random()*.5 + .1;
-  }
-  Particle.prototype.update = function(){
-    this.x += this.speedX; this.y += this.speedY;
-    if (this.x > w) this.x = 0; if (this.x < 0) this.x = w;
-    if (this.y > h) this.y = 0; if (this.y < 0) this.y = h;
-  };
-  Particle.prototype.draw = function(){
-    ctx.fillStyle = `rgba(56,189,248,${this.opacity})`;
-    ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill();
-  };
-  for (let i=0;i<60;i++) particles.push(new Particle());
-
-  function desenhar(){
-    ctx.clearRect(0,0,w,h);
-    const grd = ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,w);
-    grd.addColorStop(0,'rgba(56,189,248,.05)'); grd.addColorStop(1,'transparent');
-    ctx.fillStyle = grd; ctx.fillRect(0,0,w,h);
-    particles.forEach(p => { p.update(); p.draw(); });
-    for (let i=0;i<particles.length;i++){
-      for (let j=i;j<particles.length;j++){
-        const dx=particles[i].x-particles[j].x, dy=particles[i].y-particles[j].y;
-        const dist=Math.sqrt(dx*dx+dy*dy);
-        if (dist < 150){
-          ctx.strokeStyle = `rgba(56,189,248,${0.15 - dist/150*0.15})`;
-          ctx.lineWidth = .5;
-          ctx.beginPath(); ctx.moveTo(particles[i].x,particles[i].y); ctx.lineTo(particles[j].x,particles[j].y); ctx.stroke();
-        }
-      }
-    }
-    if (!reduzMovimento) requestAnimationFrame(desenhar);
-  }
-  desenhar();
- } catch(e) { console.error('Animação de fundo desativada:', e); }
-})();
-
-// --- LINHA DE FLUXO — assinatura do login (canvas próprio, recriado a cada render) ---
+// --- LINHA DE FLUXO — assinatura discreta do login (canvas próprio, recriado a cada render) ---
 function iniciarAnimacaoHero(){
   const canvas = document.getElementById('fluxo-hero');
   if (!canvas || !canvas.getContext) return;
@@ -364,32 +311,24 @@ function iniciarAnimacaoHero(){
   function desenhar(t){
     if (!document.body.contains(canvas)) return; // tela trocou, encerra este loop
     ctx.clearRect(0,0,W,H);
-    ctx.strokeStyle = 'rgba(255,255,255,.12)';
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(0,H/2); ctx.lineTo(W,H/2); ctx.stroke();
 
-    ctx.strokeStyle = '#38bdf8';
+    ctx.strokeStyle = '#2f8f7f';
     ctx.lineWidth = 2;
-    ctx.shadowColor = '#38bdf8';
-    ctx.shadowBlur = 6;
     ctx.beginPath();
     for (let x=0; x<=W; x+=2){
-      const fase = reduzMovimento ? 0 : t/650;
+      const fase = reduzMovimento ? 0 : t/900;
       const env = Math.min(1, x/40) * Math.min(1, (W-x)/40 + .3);
-      const y = H/2 + Math.sin(x/18 + fase) * 12 * env;
+      const y = H/2 + Math.sin(x/22 + fase) * 8 * env;
       if (x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
     }
     ctx.stroke();
-    ctx.shadowBlur = 0;
 
     if (!reduzMovimento){
-      const px = (t/14) % W;
+      const px = (t/20) % W;
       const env = Math.min(1, px/40) * Math.min(1, (W-px)/40 + .3);
-      const py = H/2 + Math.sin(px/18 + t/650) * 12 * env;
-      ctx.fillStyle = '#7dd3fc';
-      ctx.shadowColor = '#38bdf8'; ctx.shadowBlur = 10;
-      ctx.beginPath(); ctx.arc(px, py, 3.5, 0, Math.PI*2); ctx.fill();
-      ctx.shadowBlur = 0;
+      const py = H/2 + Math.sin(px/22 + t/900) * 8 * env;
+      ctx.fillStyle = '#2f8f7f';
+      ctx.beginPath(); ctx.arc(px, py, 3, 0, Math.PI*2); ctx.fill();
       requestAnimationFrame(desenhar);
     }
   }
@@ -507,7 +446,7 @@ let state = {
   anotacoesPrivadas: {},
   reagendamentos: {},
   avaliacoes: {},
-  configuracoes: { cancelamentoHoras: 4, confirmacaoHoras: 3, lembrete24h: true, lembrete2h: true }
+  configuracoes: { cancelamentoHoras: 4, confirmacaoHoras: 3, lembrete24h: true, lembrete2h: true, janelaExclusividadeHoras: 48 }
 };
 
 
@@ -523,6 +462,10 @@ let buscaProfissionalTexto = '';
 let filtroEspecialidade = 'todas';
 let filtroModalidadeProf = 'todas';
 let cadModalidadeSelecionada = 'presencial';
+let visaoAgendaProfissional = 'dia';
+let consultaDetalheId = null;
+let historicoPacienteId = null;
+let novoHorarioAberto = false;
 
 function agendasDoProfissional(profId){
   return state.agendas.filter(a => a.profissionalId === profId).sort((a,b)=>a.id-b.id);
@@ -542,6 +485,7 @@ function novoHorario(profId, diaOffset, hora, modalidade){
     status: 'livre',
     pacienteId: null,
     fila: [],
+    filaOrigem: [], // agendaId de origem de cada pessoa em fila (mesmo índice de "fila")
   });
 }
 
@@ -550,12 +494,61 @@ function dataParaDate(iso){ return new Date(iso + 'T00:00:00'); }
 function dateParaISO(d){ return d.toISOString().slice(0,10); }
 function adicionarDiasISO(iso, dias){ const d=dataParaDate(iso); d.setDate(d.getDate()+dias); return dateParaISO(d); }
 function horarioBloqueado(profId, data, agendaId){ return state.bloqueios.some(b => b.profissionalId === profId && b.data === data && (agendaId==null || b.agendaId===agendaId)); }
+
+/* --- Horários compartilhados entre agendas (convênios) ---
+   O mesmo dia/hora pode existir em várias agendas do profissional. Quando um paciente
+   pega o horário em uma agenda, o mesmo dia/hora das outras agendas deixa de aparecer.
+   Se a consulta for cancelada, o horário volta a ficar disponível em todas as agendas. */
+function horariosEspelho(h){
+  if (!h) return [];
+  return state.horarios.filter(x => x.id !== h.id
+    && x.profissionalId === h.profissionalId
+    && x.data === h.data
+    && x.hora === h.hora);
+}
+function espelhoReservado(h){
+  return horariosEspelho(h).find(x => x.pacienteId != null || x.status === 'concluido') || null;
+}
+function horarioDisponivelParaPaciente(h){
+  return !espelhoReservado(h);
+}
+
+/* --- Prioridade entre agendas e janela de exclusividade ---
+   Cada agenda do profissional tem uma "prioridade" (1 = mais prioritária). Quando o mesmo
+   dia/hora existe em mais de uma agenda, a agenda de maior prioridade fica visível para
+   agendamento imediatamente; as demais só aparecem para o paciente depois que a janela de
+   exclusividade (em horas, configurável) expira, ou assim que a vaga é ocupada em algum lugar
+   (a partir daí a fila de espera vale para qualquer convênio, como já acontecia antes). */
+function agendaPrioritariaParaHorario(h){
+  if (!h) return null;
+  const idsAgendas = [h.agendaId, ...horariosEspelho(h).map(x => x.agendaId)];
+  const agendas = state.agendas.filter(a => idsAgendas.includes(a.id));
+  if (!agendas.length) return null;
+  return agendas.slice().sort((a,b) => (a.prioridade ?? 9999) - (b.prioridade ?? 9999))[0];
+}
+function dentroJanelaExclusividade(h){
+  if (!h || h.pacienteId != null || espelhoReservado(h)) return false; // já ocupado em algum lugar: não esconde mais
+  const janela = Number(state.configuracoes.janelaExclusividadeHoras) || 0;
+  if (janela <= 0) return false;
+  const prioritaria = agendaPrioritariaParaHorario(h);
+  if (!prioritaria || prioritaria.id === h.agendaId) return false; // esta é a agenda prioritária
+  return horasAteConsulta(h) > janela;
+}
+function limiteExclusividade(h){
+  const d = new Date(h.data + 'T' + h.hora + ':00');
+  d.setHours(d.getHours() - (Number(state.configuracoes.janelaExclusividadeHoras) || 0));
+  return d;
+}
+function formatarLimiteExclusividade(h){
+  return limiteExclusividade(h).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+}
+
 function adicionarHorarioPorData(profId, data, hora, modalidade, agendaId){
   const ag = agendaId ?? agendaPadraoId(profId);
   if (horarioBloqueado(profId, data, ag)) return { ok:false, motivo:'bloqueado' };
-  const conflito = state.horarios.find(h => h.profissionalId===profId && h.data===data && h.hora===hora);
+  const conflito = state.horarios.find(h => h.profissionalId===profId && h.data===data && h.hora===hora && h.agendaId===ag);
   if (conflito) return { ok:false, motivo:'conflito', agendaId: conflito.agendaId };
-  state.horarios.push({ id: state.proximoIdHorario++, profissionalId:profId, agendaId: ag, data, hora, modalidade, status:'livre', pacienteId:null, fila:[] });
+  state.horarios.push({ id: state.proximoIdHorario++, profissionalId:profId, agendaId: ag, data, hora, modalidade, status:'livre', pacienteId:null, fila:[], filaOrigem:[] });
   return { ok:true };
 }
 function bloquearPeriodo(){
@@ -647,7 +640,7 @@ function criarAgenda(){
   const input = document.getElementById('nova-agenda-nome');
   const nome = input?.value?.trim();
   if(!nome) return mensagemErro('Dê um nome para a nova agenda (ex.: Convênio Amil, Particular...).');
-  const agenda = { id: state.proximoIdAgenda++, profissionalId: state.usuario.id, nome, criadaEm: new Date().toISOString() };
+  const agenda = { id: state.proximoIdAgenda++, profissionalId: state.usuario.id, nome, criadaEm: new Date().toISOString(), prioridade: agendasDoProfissional(state.usuario.id).length + 1 };
   state.agendas.push(agenda);
   agendaSelecionadaId = agenda.id;
   mostrarToast(`Agenda "${nome}" criada.`, 'success');
@@ -699,6 +692,17 @@ function excluirAgenda(id){
   render();
 }
 
+function moverPrioridadeAgenda(id, direcao){
+  const minhas = agendasDoProfissional(state.usuario.id).slice().sort((a,b)=>(a.prioridade??0)-(b.prioridade??0));
+  const idx = minhas.findIndex(a=>a.id===id);
+  const alvoIdx = idx + direcao;
+  if (idx===-1 || alvoIdx<0 || alvoIdx>=minhas.length) return;
+  const a = minhas[idx], b = minhas[alvoIdx];
+  const tmp = a.prioridade; a.prioridade = b.prioridade; b.prioridade = tmp;
+  mostrarToast('Ordem de prioridade atualizada.', 'success');
+  render();
+}
+
 function semearDados(){
   state.horarios = [];
   state.consultas = [];
@@ -710,7 +714,7 @@ function semearDados(){
   state.proximoIdAgenda = 1;
 
   state.profissionais.forEach(p => {
-    state.agendas.push({ id: state.proximoIdAgenda++, profissionalId: p.id, nome: 'Geral', criadaEm: new Date().toISOString() });
+    state.agendas.push({ id: state.proximoIdAgenda++, profissionalId: p.id, nome: 'Geral', criadaEm: new Date().toISOString(), prioridade: 1 });
   });
 
   // Horários Camila
@@ -760,7 +764,7 @@ function carregarDados() {
     state.avaliacoes = state.avaliacoes && typeof state.avaliacoes === 'object' ? state.avaliacoes : {};
     state.lembretesEnviados = state.lembretesEnviados && typeof state.lembretesEnviados === 'object' ? state.lembretesEnviados : {};
     state.configuracoes = state.configuracoes && typeof state.configuracoes === 'object' ? state.configuracoes : {};
-    state.horarios.forEach(h => { h.id=Number(h.id); h.profissionalId=Number(h.profissionalId); h.pacienteId=h.pacienteId==null?null:Number(h.pacienteId); h.fila=Array.isArray(h.fila)?h.fila.map(Number):[]; h.status=h.status|| (h.pacienteId?'ocupado':'livre'); });
+    state.horarios.forEach(h => { h.id=Number(h.id); h.profissionalId=Number(h.profissionalId); h.pacienteId=h.pacienteId==null?null:Number(h.pacienteId); h.fila=Array.isArray(h.fila)?h.fila.map(Number):[]; h.status=h.status|| (h.pacienteId?'ocupado':'livre'); if(!Array.isArray(h.filaOrigem) || h.filaOrigem.length!==h.fila.length) h.filaOrigem = h.fila.map(()=>h.agendaId); });
     state.consultas.forEach(c => { c.id=Number(c.id); c.pacienteId=Number(c.pacienteId); c.horarioId=Number(c.horarioId); c.status=c.status||'confirmada'; });
     // Migração leve: garante que dados salvos antes destas melhorias não quebrem a tela.
     // Compatibilidade com estados salvos de versões anteriores: IDs devem ter o mesmo tipo.
@@ -777,6 +781,7 @@ function carregarDados() {
     if (!state.configuracoes) state.configuracoes = { cancelamentoHoras: 4, confirmacaoHoras: 3, lembrete24h: true, lembrete2h: true };
     if (state.configuracoes.cancelamentoHoras == null) state.configuracoes.cancelamentoHoras = 4;
     if (state.configuracoes.confirmacaoHoras == null) state.configuracoes.confirmacaoHoras = 3;
+    if (state.configuracoes.janelaExclusividadeHoras == null) state.configuracoes.janelaExclusividadeHoras = 48;
     // Migração: adiciona clínicas para estados salvos de versões anteriores (sem esse conceito)
     if (!Array.isArray(state.clinicas) || !state.clinicas.length) {
       state.clinicas = clinicasPadrao();
@@ -794,7 +799,7 @@ function carregarDados() {
     if (state.proximoIdAgenda === undefined) state.proximoIdAgenda = 1;
     state.profissionais.forEach(p => {
       if (!state.agendas.some(a => a.profissionalId === p.id)) {
-        state.agendas.push({ id: state.proximoIdAgenda++, profissionalId: p.id, nome: 'Geral', criadaEm: new Date().toISOString() });
+        state.agendas.push({ id: state.proximoIdAgenda++, profissionalId: p.id, nome: 'Geral', criadaEm: new Date().toISOString(), prioridade: 1 });
       }
     });
     const primeiraAgendaDoProf = {};
@@ -802,6 +807,17 @@ function carregarDados() {
     state.horarios.forEach(h => { if (h.agendaId == null) h.agendaId = primeiraAgendaDoProf[h.profissionalId] ?? null; });
     state.recorrencias.forEach(r => { if (r.agendaId == null) r.agendaId = primeiraAgendaDoProf[r.profissionalId] ?? null; });
     state.bloqueios.forEach(b => { if (b.agendaId == null) b.agendaId = primeiraAgendaDoProf[b.profissionalId] ?? null; });
+    // Migração: define a prioridade de cada agenda (1 = mais prioritária) preservando a ordem existente,
+    // para estados salvos antes do recurso de janela de exclusividade.
+    (() => {
+      const contador = {};
+      state.agendas.forEach(a => {
+        if (a.prioridade == null) {
+          contador[a.profissionalId] = (contador[a.profissionalId] || 0) + 1;
+          a.prioridade = contador[a.profissionalId];
+        }
+      });
+    })();
     state.profissionais.forEach(p => {
       if (!p.especialidade) p.especialidade = p.profissao;
       if (!p.avatar) p.avatar = '🧑‍⚕️';
@@ -945,9 +961,9 @@ function salvarAnotacaoPrivada(consultaId){
   arr.push({id:Date.now(),profissionalId:state.usuario.id,texto,criadoEm:new Date().toISOString()}); state.anotacoesPrivadas[consultaId]=arr;
   mostrarToast('Anotação privada salva.'); render();
 }
-function abrirReagendamento(consultaId){ if(state.usuario?.tipo !== 'paciente'){ mensagemErro('O reagendamento é feito pelo paciente.'); return; } const c=state.consultas.find(x=>x.id===consultaId); if(!c)return; const h=getHorario(c.horarioId); if(!h)return; const prof=getProfissional(h.profissionalId); const disponiveis=state.horarios.filter(x=>x.profissionalId===h.profissionalId&&x.agendaId===h.agendaId&&x.status==='livre'&&!horarioJaEncerrado(x.data,x.hora)).sort((a,b)=>(a.data+a.hora).localeCompare(b.data+b.hora)).slice(0,12); const op=disponiveis.map(x=>`<option value="${x.id}">${formatarDataCurta(x.data)} · ${x.hora} · ${x.modalidade==='online'?'Online':'Presencial'}</option>`).join('');
+function abrirReagendamento(consultaId){ if(state.usuario?.tipo !== 'paciente'){ mensagemErro('O reagendamento é feito pelo paciente.'); return; } const c=state.consultas.find(x=>x.id===consultaId); if(!c)return; const h=getHorario(c.horarioId); if(!h)return; const prof=getProfissional(h.profissionalId); const disponiveis=state.horarios.filter(x=>x.profissionalId===h.profissionalId&&x.agendaId===h.agendaId&&x.status==='livre'&&horarioDisponivelParaPaciente(x)&&!dentroJanelaExclusividade(x)&&!horarioJaEncerrado(x.data,x.hora)).sort((a,b)=>(a.data+a.hora).localeCompare(b.data+b.hora)).slice(0,12); const op=disponiveis.map(x=>`<option value="${x.id}">${formatarDataCurta(x.data)} · ${x.hora} · ${x.modalidade==='online'?'Online':'Presencial'}</option>`).join('');
   const modal=document.createElement('div'); modal.id='modal-reagendamento'; modal.className='fixed inset-0 bg-black/40 z-[80] flex items-center justify-center p-4'; modal.innerHTML=`<div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl"><h3 class="font-display text-xl">Reagendar consulta</h3><p class="text-sm text-[var(--ink-soft)] mt-2">${escaparHtml(prof?.nome||'Profissional')} · escolha um novo horário.</p>${op?`<select id="novo-horario-reag" class="w-full border border-[var(--line)] rounded-lg p-2 mt-4">${op}</select><div class="flex gap-2 mt-5"><button class="btn-ghost flex-1 py-2" onclick="document.getElementById('modal-reagendamento')?.remove()">Cancelar</button><button class="btn-primary flex-1 py-2" onclick="confirmarReagendamento(${consultaId})">Reagendar</button></div>`:`<div class="card p-4 mt-4 text-sm">Não há horários livres disponíveis no momento.</div><button class="btn-ghost w-full py-2 mt-4" onclick="document.getElementById('modal-reagendamento')?.remove()">Fechar</button>`}</div>`; document.body.appendChild(modal); }
-function confirmarReagendamento(consultaId){ const c=state.consultas.find(x=>x.id===consultaId); const novoId=Number(document.getElementById('novo-horario-reag')?.value); const novo=getHorario(novoId); if(!c||!novo||novo.status!=='livre')return mensagemErro('Esse horário não está mais disponível.'); const antigo=getHorario(c.horarioId); const prof=getProfissional(novo.profissionalId); if(antigo) { antigo.pacienteId=null; antigo.status='livre'; }
+function confirmarReagendamento(consultaId){ const c=state.consultas.find(x=>x.id===consultaId); const novoId=Number(document.getElementById('novo-horario-reag')?.value); const novo=getHorario(novoId); if(!c||!novo||novo.status!=='livre'||!horarioDisponivelParaPaciente(novo))return mensagemErro('Esse horário não está mais disponível.'); const antigo=getHorario(c.horarioId); const prof=getProfissional(novo.profissionalId); if(antigo) { antigo.pacienteId=null; antigo.status='livre'; }
   c.horarioId=novo.id; c.status='confirmada'; novo.pacienteId=c.pacienteId; novo.status='ocupado'; c.reagendadoDe=antigo?.id||null; c.reagendadoEm=new Date().toISOString(); state.reagendamentos[c.id]={de:antigo?.id||null,para:novo.id,data:c.reagendadoEm}; notificar(c.pacienteId,'reagendamento',`Sua consulta com ${prof?.nome||'profissional'} foi reagendada para ${formatarDataCurta(novo.data)} às ${novo.hora}.`); notificar(null,'reagendamento_profissional',`Consulta de ${getPaciente(c.pacienteId)?.nome||'cliente'} reagendada para ${formatarDataCurta(novo.data)} às ${novo.hora}.`,prof?.id); document.getElementById('modal-reagendamento')?.remove(); mostrarToast('Consulta reagendada com sucesso.'); render(); }
 function salvarAvaliacao(consultaId){ const c=state.consultas.find(x=>x.id===consultaId); if(!c||c.status!=='realizada')return; const nota=Number(document.getElementById('nota-av-'+consultaId)?.value||0); const comentario=(document.getElementById('coment-av-'+consultaId)?.value||'').trim(); if(nota<1||nota>5)return mensagemErro('Escolha uma nota de 1 a 5.'); state.avaliacoes[consultaId]={nota,comentario,criadoEm:new Date().toISOString()}; const h=getHorario(c.horarioId); notificar(null,'avaliacao_recebida',`Você recebeu uma avaliação de ${getPaciente(c.pacienteId)?.nome||'cliente'}.`,h?.profissionalId); mostrarToast('Avaliação enviada. Obrigado!'); render(); }
 function agendar(pacienteId, horarioId, opcoes = {}){
@@ -962,35 +978,47 @@ function agendar(pacienteId, horarioId, opcoes = {}){
     return;
   }
 
-  if (h.fila.includes(pacienteId)) {
-    if (!opcoes.silencioso) mensagemErro('Você já está na fila de espera para este horário.');
-    return;
-  }
-
   if (!opcoes.silencioso && horarioJaEncerrado(h.data, h.hora)) {
     mensagemErro('Este horário já foi encerrado e não pode mais ser agendado.');
     return;
   }
 
-  const prof = getProfissional(h.profissionalId);
+  if (!opcoes.silencioso && dentroJanelaExclusividade(h)) {
+    mensagemErro('Este horário ainda está reservado com exclusividade para outra agenda.');
+    return;
+  }
+
+  // O mesmo dia/hora pode existir em outras agendas (convênios). Se este horário está livre
+  // mas o mesmo dia/hora já foi ocupado em outra agenda, a vaga real é aquela — a pessoa
+  // entra na fila de espera dela (assim, todo convênio tem a mesma chance de fila).
+  const alvo = (h.status === 'livre' && espelhoReservado(h)) ? espelhoReservado(h) : h;
+
+  if (alvo.fila.includes(pacienteId)) {
+    if (!opcoes.silencioso) mensagemErro('Você já está na fila de espera para este horário.');
+    return;
+  }
+
+  const prof = getProfissional(alvo.profissionalId);
   const muitasFaltas = clienteComMuitasFaltas(pacienteId);
-  if (h.status === 'livre') {
-    h.status = 'ocupado';
-    h.pacienteId = pacienteId;
-    state.consultas.push({ id: state.proximoIdConsulta++, pacienteId, horarioId, status: 'confirmada', alertaFaltas: muitasFaltas });
+  if (alvo.status === 'livre') {
+    alvo.status = 'ocupado';
+    alvo.pacienteId = pacienteId;
+    state.consultas.push({ id: state.proximoIdConsulta++, pacienteId, horarioId: alvo.id, status: 'confirmada', alertaFaltas: muitasFaltas });
     if (!opcoes.silencioso) {
       notificar(pacienteId, 'confirmacao',
-        `Sua consulta com ${prof.nome} foi confirmada para ${formatarDataCurta(h.data)} às ${h.hora}.`);
-      notificar(null, 'novo_agendamento', `${getPaciente(pacienteId)?.nome || 'Cliente'} agendou ${formatarDataCurta(h.data)} às ${h.hora}.`, prof.id);
+        `Sua consulta com ${prof.nome} foi confirmada para ${formatarDataCurta(alvo.data)} às ${alvo.hora}.`);
+      notificar(null, 'novo_agendamento', `${getPaciente(pacienteId)?.nome || 'Cliente'} agendou ${formatarDataCurta(alvo.data)} às ${alvo.hora}.`, prof.id);
       if (muitasFaltas) notificar(null, 'alerta_faltas', `Atenção: ${getPaciente(pacienteId)?.nome || 'Cliente'} possui ${contarFaltasPaciente(pacienteId)} faltas registradas.`, prof.id);
     }
   } else {
-    h.fila.push(pacienteId);
-    h.status = 'lotado';
-    state.consultas.push({ id: state.proximoIdConsulta++, pacienteId, horarioId, status: 'fila' });
+    alvo.fila.push(pacienteId);
+    if (!Array.isArray(alvo.filaOrigem)) alvo.filaOrigem = [];
+    alvo.filaOrigem.push(h.agendaId);
+    alvo.status = 'lotado';
+    state.consultas.push({ id: state.proximoIdConsulta++, pacienteId, horarioId: alvo.id, status: 'fila' });
     if (!opcoes.silencioso) {
       notificar(pacienteId, 'fila',
-        `Você entrou na fila de espera para ${formatarDataCurta(h.data)} às ${h.hora}. Sua posição é ${h.fila.length}.`);
+        `Você entrou na fila de espera para ${formatarDataCurta(alvo.data)} às ${alvo.hora}. Sua posição é ${alvo.fila.length}.`);
     }
   }
   if (!opcoes.silencioso) render();
@@ -1019,6 +1047,7 @@ function liberarHorarioEPromover(horarioId, consultaCanceladaId){
 
   if (h.fila.length > 0) {
     const proximoId = h.fila.shift();
+    if (Array.isArray(h.filaOrigem)) h.filaOrigem.shift();
     h.pacienteId = proximoId;
     h.status = 'ocupado';
 
@@ -1042,6 +1071,7 @@ function encerrarFilaDoHorario(h){
     notificar(pid,'fila_encerrada',`A consulta de ${h.hora} em ${formatarDataCurta(h.data)} já foi encerrada.`);
   });
   h.fila=[];
+  h.filaOrigem=[];
 }
 
 function registrarFaltaConsulta(consultaId){
@@ -1127,7 +1157,11 @@ function confirmarCancelamentoPaciente(){
   }
 
   if (consulta.status === 'fila') {
-    h.fila = h.fila.filter(pid => pid !== consulta.pacienteId);
+    const idx = h.fila.indexOf(consulta.pacienteId);
+    if (idx !== -1) {
+      h.fila.splice(idx, 1);
+      if (Array.isArray(h.filaOrigem)) h.filaOrigem.splice(idx, 1);
+    }
     consulta.status = 'cancelada';
     if (h.fila.length === 0 && h.pacienteId) h.status = 'ocupado';
   } else if (consulta.status === 'confirmada') {
@@ -1262,7 +1296,7 @@ function fazerCadastro(){
     };
     state.profissionais.push(novo);
     state.usuario = { tipo: 'profissional', id: novo.id, nome: novo.nome, profissao: novo.profissao };
-    state.agendas.push({ id: state.proximoIdAgenda++, profissionalId: novo.id, nome: 'Geral', criadaEm: new Date().toISOString() });
+    state.agendas.push({ id: state.proximoIdAgenda++, profissionalId: novo.id, nome: 'Geral', criadaEm: new Date().toISOString(), prioridade: 1 });
     agendaSelecionadaId = agendasDoProfissional(novo.id)[0]?.id ?? null;
     mostrarToast(`Cadastro concluído! Você já aparece em ${clinicaEscolhida.nome} para os pacientes.`);
   }
@@ -1323,29 +1357,11 @@ function iconeTipoNotificacao(tipo){
 
 function painelNotificacoes(){
   const ehPaciente = state.usuario.tipo === 'paciente';
-  const minhas = state.notificacoes.filter(n => (ehPaciente ? n.pacienteId === state.usuario.id : n.profissionalId === state.usuario.id)).slice(0, 20);
-  return `
-    <div class="notif-panel card shadow-lg bg-[var(--surface)]">
-      <div class="flex items-center justify-between px-3 py-2 border-b border-[var(--line)]">
-        <span class="font-medium text-sm">Notificações</span>
-        <button onclick="marcarTodasNotificacoesLidas()" class="text-xs text-[var(--primary)] underline underline-offset-2">Marcar todas como lidas</button>
-      </div>
-      <div class="divide-y divide-[var(--line)]">
-        ${minhas.length ? minhas.map(n => `
-          <div class="p-3 text-sm ${n.lida ? 'bg-white' : 'bg-[var(--gold-bg)]'} cursor-pointer" onclick="marcarNotificacaoLida(${n.id})">
-            <div class="flex items-start gap-2">
-              <span>${iconeTipoNotificacao(n.tipo)}</span>
-              <div class="flex-1">
-                <p>${n.mensagem}</p>
-                <p class="text-xs text-[var(--ink-soft)] mt-1">${new Date(n.criadaEm).toLocaleString('pt-BR')}</p>
-              </div>
-              ${!n.lida ? '<span class="w-2 h-2 rounded-full bg-[var(--brick)] mt-1 flex-shrink-0"></span>' : ''}
-            </div>
-          </div>`).join('') : `<div class="p-4 text-sm text-[var(--ink-soft)]">Sem notificações por enquanto.</div>`}
-      </div>
-    </div>`;
+  const minhas = state.notificacoes.filter(n => (ehPaciente ? n.pacienteId === state.usuario.id : n.profissionalId === state.usuario.id)).slice(0, 30);
+  const categoria = n => ['confirmacao_pendente','cancelamento_paciente','novo_agendamento','alerta_faltas'].includes(n.tipo) ? 'Ação necessária' : ['lembrete24','lembrete2h','fila','promocao','confirmacao'].includes(n.tipo) ? 'Atualização' : ['realizada','cancelamento','cancelamento_profissional','fila_encerrada'].includes(n.tipo) ? 'Informação' : 'Atualização';
+  const grupos = ['Ação necessária','Atualização','Informação'].map(cat=>({cat,itens:minhas.filter(n=>categoria(n)===cat)})).filter(g=>g.itens.length);
+  return `<div class="notif-panel card shadow-lg bg-[var(--surface)]"><div class="flex items-center justify-between px-3 py-2 border-b border-[var(--line)]"><span class="font-medium text-sm">Notificações</span><button onclick="marcarTodasNotificacoesLidas()" class="text-xs text-[var(--primary)] underline underline-offset-2">Marcar todas como lidas</button></div><div class="p-2">${grupos.length?grupos.map(g=>`<div class="mb-3"><div class="notification-category px-2 pt-1">${g.cat}</div>${g.itens.map(n=>`<div class="p-3 rounded-lg text-sm ${n.lida?'bg-white':'bg-[var(--gold-bg)]'} cursor-pointer mb-1" onclick="marcarNotificacaoLida(${n.id})"><div class="flex items-start gap-2"><span>${iconeTipoNotificacao(n.tipo)}</span><div class="flex-1"><p>${escaparHtml(n.mensagem)}</p><p class="text-xs text-[var(--ink-soft)] mt-1">${new Date(n.criadaEm).toLocaleString('pt-BR')}</p>${n.tipo==='confirmacao_pendente'&&ehPaciente?'<button onclick="event.stopPropagation(); const c=state.consultas.find(c=>state.confirmacoes[c.id]?.status===\'pendente\'); if(c) confirmarConsultaPaciente(c.id)" class="btn-primary px-2.5 py-1.5 text-xs mt-2">Confirmar consulta</button>':''}</div>${!n.lida?'<span class="w-2 h-2 rounded-full bg-[var(--brick)] mt-1 flex-shrink-0"></span>':''}</div></div>`).join('')}</div>`).join(''):'<div class="p-4 text-sm text-[var(--ink-soft)]">Sem notificações por enquanto.</div>'}</div></div>`;
 }
-
 
 
 let calendarioAberto = false;
@@ -1395,8 +1411,9 @@ function gerarGradeCalendario(filtroProfissionalId = null, filtroAgendaId = null
   for (let dia = 1; dia <= totalDias; dia++) {
     const iso = `${ano}-${String(mes+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
     const horariosDoDiaCal = filtroProfissionalId ? state.horarios.filter(h => h.data === iso && h.profissionalId === filtroProfissionalId) : [];
+    // Para o paciente (mostrarAgendas=false) o ponto só aparece se o horário não estiver na janela de exclusividade de outra agenda.
     const temHorario = filtroProfissionalId
-      ? horariosDoDiaCal.some(h => filtroAgendaId ? h.agendaId === filtroAgendaId : true)
+      ? horariosDoDiaCal.some(h => (filtroAgendaId ? h.agendaId === filtroAgendaId : true) && (mostrarAgendas || !dentroJanelaExclusividade(h)))
       : state.horarios.some(h => h.data === iso);
     const bloqueado = filtroProfissionalId ? horarioBloqueado(filtroProfissionalId, iso, filtroAgendaId) : false;
     const agendasNoDia = mostrarAgendas ? [...new Set(horariosDoDiaCal.map(h => h.agendaId))] : [];
@@ -1826,6 +1843,8 @@ function telaPacientePerfil(){
           </div>` : ''}
         </div>
 
+        ${(()=>{ const r=resumoAvaliacoes(p.id), aval=avaliacoesDoProfissional(p.id); return `<div class="mt-5 pt-4 border-t border-[var(--line)]"><div class="flex items-center justify-between gap-3"><h4 class="text-xs uppercase tracking-wide text-[var(--ink-soft)] font-medium">Avaliações</h4><span class="text-sm font-medium">${r.quantidade?`★ ${r.media.toFixed(1)} · ${r.quantidade} avaliação(ões)`:'Ainda sem avaliações'}</span></div>${aval.length?aval.slice().reverse().slice(0,3).map(a=>`<div class="mt-3 text-sm"><strong>${'★'.repeat(Number(a.nota))}${'☆'.repeat(5-Number(a.nota))}</strong>${a.comentario?`<p class="text-xs text-[var(--ink-soft)] mt-1">${escaparHtml(a.comentario)}</p>`:''}</div>`).join(''):''}</div>`; })()}
+
         <button onclick="abrirAgendaProfissional()" class="btn-primary w-full py-2.5 text-sm font-medium mt-6">Ver agenda</button>
       </div>
     </div>`;
@@ -1855,6 +1874,8 @@ function telaPacienteAgenda(){
 
   const horariosDoDia = state.horarios
     .filter(h => h.profissionalId === prof.id && h.data === state.diaSelecionado && (agendaSelecionadaPacienteId ? h.agendaId === agendaSelecionadaPacienteId : true))
+    // Esconde da lista se este horário ainda está na janela de exclusividade de outra agenda com maior prioridade.
+    .filter(h => !dentroJanelaExclusividade(h))
     .sort((a,b) => a.hora.localeCompare(b.hora));
 
   return `
@@ -1909,7 +1930,7 @@ function linhaConsultaPaciente(c, permitirCancelar){
       <div class="flex items-center gap-2 flex-wrap justify-end">
         <span class="badge ${classe}">${label}</span>
         ${c.status === 'confirmada' ? `<button onclick="abrirReagendamento(${c.id})" class="btn-ghost px-3 py-1.5 text-xs font-medium">🔄 Reagendar</button><button onclick="simularLembrete(${c.id})" class="btn-ghost px-3 py-1.5 text-xs font-medium">⏰ Lembrete</button>${state.confirmacoes[c.id]?.status==='pendente' ? `<button onclick="confirmarConsultaPaciente(${c.id})" class="btn-primary px-3 py-1.5 text-xs font-medium">Confirmar consulta</button>` : ''}` : ''}
-        ${permitirCancelar ? `<button onclick="abrirModalCancelamento(${c.id})" class="btn-brick px-3 py-1.5 text-xs font-medium">Cancelar consulta</button>` : ''}
+        ${permitirCancelar ? `<button onclick="abrirModalCancelamento(${c.id})" class="btn-brick px-3 py-1.5 text-xs font-medium">Cancelar consulta</button>` : ''}<button onclick="abrirDetalheConsulta(${c.id})" class="btn-ghost px-3 py-1.5 text-xs font-medium">Detalhes</button>
       </div>
     </div>`;
 }
@@ -1978,6 +1999,7 @@ function salvarConfiguracoesAgenda(){
   state.configuracoes.lembrete2h=!!document.getElementById('cfg-2h')?.checked;
   state.configuracoes.confirmacaoHoras=Math.max(1,Number(document.getElementById('cfg-conf')?.value||3));
   state.configuracoes.cancelamentoHoras=Math.max(0,Number(document.getElementById('cfg-canc')?.value||4));
+  state.configuracoes.janelaExclusividadeHoras=Math.max(0,Number(document.getElementById('cfg-janela')?.value||0));
   mostrarToast('Regras da agenda atualizadas.'); render();
 }
 
@@ -1988,7 +2010,7 @@ function seletorAgendas(){
       <div class="flex items-start justify-between gap-3 mb-3">
         <div>
           <h3 class="font-medium mb-1">Suas agendas</h3>
-          <p class="text-xs text-[var(--ink-soft)]">Cada agenda tem sua própria grade de horários — use para separar convênios, particular etc. A agenda selecionada abaixo é usada para criar horários recorrentes, bloqueios e para a grade da aba Agenda.</p>
+          <p class="text-xs text-[var(--ink-soft)]">Cada agenda tem sua própria grade de horários — use para separar convênios, particular etc. Você pode lançar o mesmo dia e horário em várias agendas: quem agendar primeiro fica com a vaga, e os pacientes dos outros convênios podem entrar na fila de espera dela.</p>
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-2 mb-3">
@@ -2018,7 +2040,97 @@ function seletorAgendas(){
         <input id="nova-agenda-nome" placeholder="Nome da nova agenda (ex.: Convênio Amil, Particular...)" class="flex-1 border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--bg)]">
         <button onclick="criarAgenda()" class="btn-ghost px-3 py-2 text-sm font-medium whitespace-nowrap">+ Nova agenda</button>
       </div>
+      ${minhas.length > 1 ? `
+      <div class="mt-4 pt-4 border-t border-[var(--line)]">
+        <h4 class="text-sm font-medium mb-1">Prioridade entre agendas</h4>
+        <p class="text-xs text-[var(--ink-soft)] mb-3">Quando o mesmo dia/hora existe em mais de uma agenda, a de maior prioridade fica disponível primeiro para os pacientes. As demais só aparecem depois da janela de exclusividade (defina em Configurações) ou assim que a vaga for ocupada.</p>
+        <div class="space-y-1.5">
+          ${minhas.slice().sort((a,b)=>(a.prioridade??0)-(b.prioridade??0)).map((a,i,arr)=>`
+            <div class="flex items-center justify-between gap-2 bg-[var(--bg)] border border-[var(--line)] rounded-lg px-3 py-2">
+              <span class="text-sm"><strong>${i+1}º</strong> ${escaparHtml(a.nome)}</span>
+              <span class="flex gap-1">
+                <button onclick="moverPrioridadeAgenda(${a.id}, -1)" ${i===0?'disabled':''} class="btn-ghost px-2 py-1 text-xs" title="Aumentar prioridade">▲</button>
+                <button onclick="moverPrioridadeAgenda(${a.id}, 1)" ${i===arr.length-1?'disabled':''} class="btn-ghost px-2 py-1 text-xs" title="Diminuir prioridade">▼</button>
+              </span>
+            </div>`).join('')}
+        </div>
+      </div>` : ''}
     </div>`;
+}
+
+function avaliacoesDoProfissional(profId){
+  return Object.entries(state.avaliacoes || {}).map(([consultaId, a]) => {
+    const c = state.consultas.find(x => String(x.id) === String(consultaId));
+    const h = c ? getHorario(c.horarioId) : null;
+    return { ...a, consulta:c, horario:h, paciente:c ? getPaciente(c.pacienteId) : null };
+  }).filter(x => x.horario && Number(x.horario.profissionalId) === Number(profId) && Number(x.nota) >= 1);
+}
+function resumoAvaliacoes(profId){
+  const arr = avaliacoesDoProfissional(profId);
+  const media = arr.length ? arr.reduce((s,a)=>s+Number(a.nota),0)/arr.length : 0;
+  return { quantidade:arr.length, media, cinco:arr.filter(a=>Number(a.nota)===5).length, quatro:arr.filter(a=>Number(a.nota)===4).length, tres:arr.filter(a=>Number(a.nota)===3).length, dois:arr.filter(a=>Number(a.nota)===2).length, um:arr.filter(a=>Number(a.nota)===1).length };
+}
+function abrirDetalheConsulta(id){ consultaDetalheId = id; historicoPacienteId = null; render(); }
+function fecharDetalheConsulta(){ consultaDetalheId = null; render(); }
+function abrirHistoricoPaciente(id){ historicoPacienteId = id; consultaDetalheId = null; render(); }
+function fecharHistoricoPaciente(){ historicoPacienteId = null; render(); }
+function abrirNovoHorario(){ novoHorarioAberto = true; render(); }
+function fecharNovoHorario(){ novoHorarioAberto = false; render(); }
+function salvarNovoHorario(){
+  const data=document.getElementById('novo-hor-data')?.value;
+  const hora=document.getElementById('novo-hor-hora')?.value;
+  const modalidade=document.getElementById('novo-hor-modalidade')?.value || 'presencial';
+  const agendaId=Number(document.getElementById('novo-hor-agenda')?.value || agendaSelecionadaId);
+  if(!data || !hora) return mensagemErro('Informe a data e o horário.');
+  if(data < hojeISO()) return mensagemErro('A data precisa ser hoje ou futura.');
+  if(!agendaId) return mensagemErro('Selecione uma agenda.');
+  const r=adicionarHorarioPorData(state.usuario.id,data,hora,modalidade,agendaId);
+  if(!r.ok) return mensagemErro(r.motivo==='bloqueado'?'Essa data está bloqueada.':'Já existe um horário nesse dia e hora nesta agenda.');
+  novoHorarioAberto=false; state.diaSelecionado=data; agendaSelecionadaId=agendaId; mostrarToast('Novo horário criado.','success'); render();
+}
+function selecionarVisaoAgenda(visao){ visaoAgendaProfissional=visao; render(); }
+function datasDaSemana(iso){
+  const d=dataParaDate(iso), domingo=new Date(d); domingo.setDate(d.getDate()-d.getDay());
+  return Array.from({length:7},(_,i)=>dateParaISO(new Date(domingo.getFullYear(),domingo.getMonth(),domingo.getDate()+i)));
+}
+function horariosProfissionaisDaData(data){
+  return state.horarios.filter(h=>h.profissionalId===state.usuario.id && h.data===data && (agendaSelecionadaId ? h.agendaId===agendaSelecionadaId : true)).sort((a,b)=>a.hora.localeCompare(b.hora));
+}
+function renderAgendaProfissional(){
+  if(visaoAgendaProfissional==='dia'){
+    const hs=horariosProfissionaisDaData(state.diaSelecionado);
+    return hs.length ? `<div class="space-y-3">${hs.map(h=>cartaoHorario(h,'profissional')).join('')}</div>` : `<div class="card p-7 text-center bg-white"><div class="text-2xl mb-2">🗓️</div><h4 class="font-display text-lg">Dia sem horários cadastrados</h4><p class="text-sm text-[var(--ink-soft)] mt-2">Use os horários recorrentes na aba Início ou crie um novo horário.</p></div>`;
+  }
+  if(visaoAgendaProfissional==='semana'){
+    const dias=datasDaSemana(state.diaSelecionado);
+    return `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">${dias.map(d=>{const hs=horariosProfissionaisDaData(d); return `<div class="card bg-white p-3 agenda-week-day ${d===state.diaSelecionado?'border-[var(--primary)]':''}"><button onclick="selecionarDia('${d}')" class="w-full text-left mb-2"><div class="text-xs text-[var(--ink-soft)]">${new Date(d+'T00:00:00').toLocaleDateString('pt-BR',{weekday:'short'})}</div><div class="font-display text-lg">${new Date(d+'T00:00:00').getDate()}</div></button>${hs.length?hs.map(h=>`<div class="border-t border-[var(--line)] pt-2 mt-2 cursor-pointer" onclick="abrirDetalheConsulta(${(state.consultas.find(c=>c.horarioId===h.id && c.status!=='cancelada')||{}).id||0})"><div class="font-medium tabular text-sm">${h.hora}</div><div class="text-[11px] text-[var(--ink-soft)] truncate">${escaparHtml(h.pacienteId?getPaciente(h.pacienteId)?.nome||'Paciente':(espelhoReservado(h)?'Reservado em outra agenda':'Livre'))}</div>${badgeStatus(h.status)}</div>`).join(''):'<div class="text-xs text-[var(--ink-soft)] pt-2">Sem horários</div>'}</div>`}).join('')}</div>`;
+  }
+  const d=dataParaDate(state.diaSelecionado), ano=d.getFullYear(), mes=d.getMonth(), total=new Date(ano,mes+1,0).getDate(), inicio=new Date(ano,mes,1).getDay();
+  let cells=''; for(let i=0;i<inicio;i++) cells+='<div></div>'; for(let n=1;n<=total;n++){const iso=`${ano}-${String(mes+1).padStart(2,'0')}-${String(n).padStart(2,'0')}`,hs=horariosProfissionaisDaData(iso),ocup=hs.filter(h=>h.pacienteId).length; cells+=`<button onclick="selecionarDia('${iso}')" class="card bg-white p-2 text-left min-h-[88px] ${iso===state.diaSelecionado?'border-[var(--primary)]':''}"><div class="text-sm font-medium">${n}</div><div class="text-[11px] text-[var(--ink-soft)] mt-2">${hs.length} horário(s)</div>${ocup?`<div class="text-[11px] text-[var(--primary)] mt-1">${ocup} ocupado(s)</div>`:''}</button>`;}
+  return `<div class="agenda-month-grid">${cells}</div>`;
+}
+function modalDetalheConsulta(){
+  const c=state.consultas.find(x=>x.id===consultaDetalheId); const h=c?getHorario(c.horarioId):null; if(!c||!h)return '';
+  const p=getPaciente(c.pacienteId), prof=getProfissional(h.profissionalId), conf=state.confirmacoes[c.id];
+  const av=state.avaliacoes[c.id];
+  return `<div class="modal-overlay fluxo-extra-modal" onclick="if(event.target===this)fecharDetalheConsulta()"><div class="card bg-white p-6 max-w-lg w-full"><div class="flex items-start justify-between gap-3"><div><h3 class="font-display text-xl">Detalhes da consulta</h3><p class="text-sm text-[var(--ink-soft)] mt-1">${formatarDataCompleta(h.data)} · ${h.hora}</p></div><button onclick="fecharDetalheConsulta()" class="btn-ghost px-3 py-1.5">✕</button></div><div class="grid sm:grid-cols-2 gap-3 mt-5"><div class="card p-3"><div class="text-xs text-[var(--ink-soft)]">Paciente</div><div class="font-medium mt-1">${escaparHtml(p?.nome||'Paciente')}</div></div><div class="card p-3"><div class="text-xs text-[var(--ink-soft)]">Profissional</div><div class="font-medium mt-1">${escaparHtml(prof?.nome||'')}</div></div><div class="card p-3"><div class="text-xs text-[var(--ink-soft)]">Modalidade</div><div class="mt-1">${h.modalidade==='online'?'💻 Online':'📍 Presencial'}</div></div><div class="card p-3"><div class="text-xs text-[var(--ink-soft)]">Status</div><div class="mt-1">${badgeStatus(h.status)}</div></div></div><div class="mt-4 text-sm"><strong>Agenda:</strong> ${escaparHtml(state.agendas.find(a=>a.id===h.agendaId)?.nome||'Agenda')}<br><strong>Confirmação:</strong> ${conf?.status==='confirmada'?'Confirmada':conf?.status==='pendente'?'Pendente':'Não solicitada'}${av?`<br><strong>Avaliação:</strong> ${'★'.repeat(Number(av.nota))}${'☆'.repeat(5-Number(av.nota))}${av.comentario?` — ${escaparHtml(av.comentario)}`:''}`:''}</div>${p&&state.usuario.tipo==='profissional'?`<button onclick="fecharDetalheConsulta();abrirHistoricoPaciente(${p.id})" class="btn-ghost w-full py-2 mt-5 text-sm">Ver histórico do paciente</button>`:''}</div></div>`;
+}
+function modalHistoricoPaciente(){
+  const p=getPaciente(historicoPacienteId); if(!p)return '';
+  const itens=state.consultas.filter(c=>c.pacienteId===p.id).map(c=>({c,h:getHorario(c.horarioId)})).filter(x=>x.h && x.h.profissionalId===state.usuario.id).sort((a,b)=>(b.h.data+b.h.hora).localeCompare(a.h.data+a.h.hora));
+  return `<div class="modal-overlay fluxo-extra-modal" onclick="if(event.target===this)fecharHistoricoPaciente()"><div class="card bg-white p-6 max-w-2xl w-full"><div class="flex items-start justify-between"><div><h3 class="font-display text-xl">Histórico do paciente</h3><p class="text-sm text-[var(--ink-soft)] mt-1">${escaparHtml(p.nome)}</p></div><button onclick="fecharHistoricoPaciente()" class="btn-ghost px-3 py-1.5">✕</button></div><div class="mt-5 space-y-2">${itens.length?itens.map(({c,h})=>`<div class="card p-3 bg-white flex items-center justify-between gap-3"><div><div class="font-medium text-sm">${formatarDataCurta(h.data)} · ${h.hora}</div><div class="text-xs text-[var(--ink-soft)]">${h.modalidade==='online'?'💻 Online':'📍 Presencial'} · ${escaparHtml(state.agendas.find(a=>a.id===h.agendaId)?.nome||'Agenda')}</div></div><div class="text-right"><span class="badge ${c.status==='realizada'?'badge-livre':c.status==='faltou'?'badge-lotado':'badge-concluido'}">${c.status==='realizada'?'Realizada':c.status==='faltou'?'Faltou':c.status==='cancelada'?'Cancelada':c.status}</span><button onclick="abrirDetalheConsulta(${c.id})" class="block text-xs text-[var(--primary)] underline mt-1">Detalhes</button></div></div>`).join(''):`<div class="text-sm text-[var(--ink-soft)]">Nenhuma consulta registrada.</div>`}</div></div></div>`;
+}
+function modalNovoHorario(){
+  const ags=agendasDoProfissional(state.usuario.id); return `<div class="modal-overlay fluxo-extra-modal" onclick="if(event.target===this)fecharNovoHorario()"><div class="card bg-white p-6 max-w-md w-full"><div class="flex justify-between items-center"><h3 class="font-display text-xl">Novo horário</h3><button onclick="fecharNovoHorario()" class="btn-ghost px-3 py-1.5">✕</button></div><p class="text-xs text-[var(--ink-soft)] mt-1">Crie um horário avulso sem alterar sua recorrência. O mesmo dia e horário pode ser lançado em mais de uma agenda.</p><div class="grid grid-cols-2 gap-3 mt-5"><div><label class="text-xs text-[var(--ink-soft)] block mb-1">Data</label><input id="novo-hor-data" type="date" value="${state.diaSelecionado}" class="w-full rounded-lg px-3 py-2"></div><div><label class="text-xs text-[var(--ink-soft)] block mb-1">Horário</label><input id="novo-hor-hora" type="time" value="09:00" class="w-full rounded-lg px-3 py-2"></div></div><div class="mt-3"><label class="text-xs text-[var(--ink-soft)] block mb-1">Agenda</label><select id="novo-hor-agenda" class="w-full rounded-lg px-3 py-2">${ags.map(a=>`<option value="${a.id}" ${a.id===agendaSelecionadaId?'selected':''}>${escaparHtml(a.nome)}</option>`).join('')}</select></div><div class="mt-3"><label class="text-xs text-[var(--ink-soft)] block mb-1">Modalidade</label><select id="novo-hor-modalidade" class="w-full rounded-lg px-3 py-2"><option value="presencial">Presencial</option><option value="online">Online</option></select></div><button onclick="salvarNovoHorario()" class="btn-primary w-full py-2.5 mt-5 text-sm font-medium">Criar horário</button></div></div>`;
+}
+function relatorioProfissional(){
+  const meus=state.consultas.map(c=>({c,h:getHorario(c.horarioId)})).filter(x=>x.h && x.h.profissionalId===state.usuario.id);
+  const realizadas=meus.filter(x=>x.c.status==='realizada').length, faltas=meus.filter(x=>x.c.status==='faltou').length, canceladas=meus.filter(x=>x.c.status==='cancelada').length, totalEnc=realizadas+faltas;
+  const comparecimento=totalEnc?Math.round(realizadas/totalEnc*100):0;
+  const proximas=meus.filter(x=>x.c.status==='confirmada' && !consultaJaPassou(x.h)).length;
+  const livres=state.horarios.filter(h=>h.profissionalId===state.usuario.id && h.status==='livre').length;
+  const filas=state.horarios.filter(h=>h.profissionalId===state.usuario.id).reduce((s,h)=>s+h.fila.length,0);
+  return `<div class="card p-5 bg-white"><div class="flex items-center justify-between gap-3 mb-4"><div><h3 class="font-medium">Relatórios</h3><p class="text-xs text-[var(--ink-soft)] mt-1">Resumo dos dados registrados no Fluxo.</p></div><span class="badge badge-ocupado">Atual</span></div><div class="grid grid-cols-2 sm:grid-cols-4 gap-3"><div class="stat-card"><div class="stat-num">${meus.length}</div><div class="text-xs text-[var(--ink-soft)] mt-1">Total de consultas</div></div><div class="stat-card"><div class="stat-num">${comparecimento}%</div><div class="text-xs text-[var(--ink-soft)] mt-1">Comparecimento</div></div><div class="stat-card"><div class="stat-num">${canceladas}</div><div class="text-xs text-[var(--ink-soft)] mt-1">Cancelamentos</div></div><div class="stat-card"><div class="stat-num">${faltas}</div><div class="text-xs text-[var(--ink-soft)] mt-1">Faltas</div></div></div><div class="mt-5 space-y-3 text-xs"><div><div class="flex justify-between mb-1"><span>Realizadas</span><strong>${realizadas}</strong></div><div class="report-bar"><span style="width:${totalEnc?Math.round(realizadas/totalEnc*100):0}%"></span></div></div><div><div class="flex justify-between mb-1"><span>Próximas confirmadas</span><strong>${proximas}</strong></div><div class="report-bar"><span style="width:${meus.length?Math.min(100,Math.round(proximas/meus.length*100)):0}%"></span></div></div><div><div class="flex justify-between mb-1"><span>Horários livres</span><strong>${livres}</strong></div><div class="report-bar"><span style="width:${Math.min(100,livres*10)}%"></span></div></div><div><div class="flex justify-between mb-1"><span>Pessoas na fila</span><strong>${filas}</strong></div><div class="report-bar"><span style="width:${Math.min(100,filas*10)}%"></span></div></div></div></div>`;
 }
 
 function telaProfissional(){
@@ -2058,24 +2170,7 @@ function telaProfissional(){
         <p class="text-sm text-[var(--ink-soft)]">Aqui está um resumo da sua agenda de hoje.</p>
       </div>
 
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div class="stat-card">
-          <div class="stat-num">${horariosHoje.length}</div>
-          <div class="text-xs text-[var(--ink-soft)] mt-1">Consultas hoje</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-num">${confirmadasHoje}</div>
-          <div class="text-xs text-[var(--ink-soft)] mt-1">Confirmadas</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-num">${emFilaHoje}</div>
-          <div class="text-xs text-[var(--ink-soft)] mt-1">Em fila</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-num">${livresHoje}</div>
-          <div class="text-xs text-[var(--ink-soft)] mt-1">Horários livres</div>
-        </div>
-      </div>
+      ${(()=>{ const prox=futuras[0]; const pend=state.confirmacoes ? Object.values(state.confirmacoes).filter(x=>x.status==='pendente').length : 0; const enc=consultasDoProfissional.filter(x=>['realizada','faltou'].includes(x.consulta.status)); const taxa=enc.length?Math.round(enc.filter(x=>x.consulta.status==='realizada').length/enc.length*100):0; const canc=consultasDoProfissional.filter(x=>x.consulta.status==='cancelada').length; return `<div class="grid grid-cols-2 sm:grid-cols-4 gap-3"><div class="stat-card"><div class="stat-num">${horariosHoje.length}</div><div class="text-xs text-[var(--ink-soft)] mt-1">Consultas hoje</div></div><div class="stat-card"><div class="stat-num">${livresHoje}</div><div class="text-xs text-[var(--ink-soft)] mt-1">Horários livres</div></div><div class="stat-card"><div class="stat-num">${emFilaHoje}</div><div class="text-xs text-[var(--ink-soft)] mt-1">Em fila</div></div><div class="stat-card"><div class="stat-num">${taxa}%</div><div class="text-xs text-[var(--ink-soft)] mt-1">Comparecimento</div></div></div><div class="grid sm:grid-cols-3 gap-3"><div class="card bg-white p-4"><div class="text-xs text-[var(--ink-soft)]">Próxima consulta</div><div class="font-medium mt-1">${prox?`${formatarDataCurta(prox.horario.data)} · ${prox.horario.hora}`:'Nenhuma'}</div><div class="text-xs mt-1">${prox?escaparHtml(getPaciente(prox.consulta.pacienteId)?.nome||'Paciente'):'Sem consultas futuras'}</div></div><div class="card bg-white p-4"><div class="text-xs text-[var(--ink-soft)]">Confirmações pendentes</div><div class="font-display text-2xl text-[var(--primary-dark)] mt-1">${pend}</div><div class="text-xs mt-1">Aguardando ação</div></div><div class="card bg-white p-4"><div class="text-xs text-[var(--ink-soft)]">Cancelamentos registrados</div><div class="font-display text-2xl text-[var(--primary-dark)] mt-1">${canc}</div><div class="text-xs mt-1">Consulte os detalhes na Agenda</div></div></div><div class="action-row"><button onclick="abrirNovoHorario()" class="btn-primary px-4 py-2 text-sm font-medium">＋ Novo horário</button><button onclick="irParaAbaProfissional('agenda')" class="btn-ghost px-4 py-2 text-sm">Abrir agenda</button></div>`; })()}
 
       <div>
         <div class="flex items-center justify-between gap-3 mb-3 border-b border-[var(--line)] pb-2">
@@ -2097,7 +2192,7 @@ function telaProfissional(){
                 <p class="text-sm mt-1">Paciente: <strong>${escaparHtml(paciente?.nome || 'Paciente')}</strong></p>
               </div>
               <span class="text-xs">${h.modalidade === 'online' ? '💻 Online' : '📍 Presencial'}</span>
-              <span class="badge badge-ocupado">Confirmada</span>
+              <span class="badge badge-ocupado">Confirmada</span><button onclick="abrirDetalheConsulta(${x.consulta.id})" class="btn-ghost px-2 py-1 text-xs">Detalhes</button>
             </div>`;
           }).join('') : `<div class="p-5 text-sm text-[var(--ink-soft)]">Nenhuma consulta futura agendada.</div>`}
         </div>
@@ -2123,7 +2218,7 @@ function telaProfissional(){
           return grupos.length ? grupos.map(g=>`<div class="card bg-white p-4 mb-3">
             <div class="flex items-center justify-between gap-3 flex-wrap">
               <div><div class="font-medium">${escaparHtml(g.paciente.nome)}</div><div class="text-xs text-[var(--ink-soft)]">${g.notas.length} ${g.notas.length===1?'anotação privada':'anotações privadas'}</div></div>
-              <span class="badge badge-ocupado">Privado</span>
+              <div class="flex items-center gap-2"><span class="badge badge-ocupado">Privado</span><button onclick="abrirHistoricoPaciente(${g.paciente.id})" class="btn-ghost px-2.5 py-1.5 text-xs">Histórico</button></div>
             </div>
             <div class="mt-3 space-y-2">${g.notas.sort((a,b)=>new Date(b.criadoEm)-new Date(a.criadoEm)).map(n=>`<div class="rounded-lg bg-[var(--bg)] border border-[var(--line)] p-3">
               <div class="text-[11px] text-[var(--ink-soft)] mb-1">${formatarDataCurta(n.horario.data)} · ${n.horario.hora} · Consulta</div>
@@ -2242,9 +2337,7 @@ function telaProfissional(){
         </div>
       </div>
 
-      <div class="space-y-3 pt-2">
-        ${horariosDoDia.length ? horariosDoDia.map(h => cartaoHorario(h, 'profissional')).join('') : `<div class="card p-7 text-center bg-white"><div class="text-2xl mb-2">🗓️</div><h4 class="font-display text-lg">Dia sem horários cadastrados</h4><p class="text-sm text-[var(--ink-soft)] mt-2">Use os horários recorrentes na aba Início para criar sua agenda ou escolha outra data no calendário.</p></div>`}
-      </div>`;
+      <div class="flex items-center justify-between gap-3 flex-wrap"><div class="agenda-view-toggle"><button onclick="selecionarVisaoAgenda('dia')" class="${visaoAgendaProfissional==='dia'?'active':''}">Dia</button><button onclick="selecionarVisaoAgenda('semana')" class="${visaoAgendaProfissional==='semana'?'active':''}">Semana</button><button onclick="selecionarVisaoAgenda('mes')" class="${visaoAgendaProfissional==='mes'?'active':''}">Mês</button></div><span class="text-xs text-[var(--ink-soft)]">${visaoAgendaProfissional==='dia'?formatarDataCompleta(state.diaSelecionado):visaoAgendaProfissional==='semana'?'Visão semanal':'Visão mensal'}</span></div><div class="pt-2">${renderAgendaProfissional()}</div>`;
 
   const conteudoConfig = `
       <div class="card p-5 bg-white">
@@ -2256,14 +2349,14 @@ function telaProfissional(){
           <label class="text-sm">Confirmação obrigatória com <input id="cfg-conf" type="number" min="1" max="48" value="${state.configuracoes.confirmacaoHoras}" class="w-16 border rounded px-2 py-1"> h de antecedência</label>
           <label class="text-sm">Cancelamento permitido até <input id="cfg-canc" type="number" min="0" max="72" value="${state.configuracoes.cancelamentoHoras}" class="w-16 border rounded px-2 py-1"> h antes</label>
         </div>
+        <div class="mt-4 pt-4 border-t border-[var(--line)]">
+          <label class="text-sm">Janela de exclusividade: reservar <input id="cfg-janela" type="number" min="0" max="720" value="${state.configuracoes.janelaExclusividadeHoras}" class="w-16 border rounded px-2 py-1"> h só para a agenda de maior prioridade antes de liberar para as demais</label>
+          <p class="text-xs text-[var(--ink-soft)] mt-1">Coloque 0 para desativar (todas as agendas competem pelo horário desde o início, por ordem de chegada).</p>
+        </div>
         <button onclick="salvarConfiguracoesAgenda()" class="btn-primary px-4 py-2 text-sm mt-4">Salvar regras</button>
       </div>
 
-      <div class="card p-4 bg-white">
-        <h3 class="font-medium mb-2">Perfil</h3>
-        <p class="text-sm"><strong>Nome:</strong> ${state.usuario.nome}</p>
-        <p class="text-sm"><strong>Profissão:</strong> ${state.usuario.profissao}</p>
-      </div>`;
+      ${(()=>{ const p=getProfissional(state.usuario.id), r=resumoAvaliacoes(state.usuario.id), aval=avaliacoesDoProfissional(state.usuario.id); return `<div class="card p-5 bg-white"><div class="flex items-start gap-4"><div class="avatar-circle" style="width:72px;height:72px;font-size:2rem;">${p.avatar||'🧑‍⚕️'}</div><div class="flex-1"><h3 class="font-display text-xl">${escaparHtml(p.nome)}</h3><p class="text-sm text-[var(--ink-soft)]">${escaparHtml(p.profissao)} · ${escaparHtml(p.especialidade||'')}</p><p class="text-sm mt-2">${escaparHtml(p.descricao||'Profissional cadastrado na plataforma Fluxo.')}</p></div></div><div class="grid sm:grid-cols-3 gap-3 mt-5"><div class="card p-3"><div class="text-xs text-[var(--ink-soft)]">Modalidade</div><div class="text-sm mt-1">${p.modalidadeAtendimento==='ambos'?'💻📍 Online e presencial':p.modalidadeAtendimento==='online'?'💻 Online':'📍 Presencial'}</div></div><div class="card p-3"><div class="text-xs text-[var(--ink-soft)]">Local</div><div class="text-sm mt-1">${escaparHtml(p.localAtendimento||'Atendimento online')}</div></div><div class="card p-3"><div class="text-xs text-[var(--ink-soft)]">Avaliação</div><div class="text-sm mt-1">${r.quantidade?`★ ${r.media.toFixed(1)} (${r.quantidade})`:'Ainda sem avaliações'}</div></div></div><div class="mt-4"><div class="text-xs uppercase tracking-wide text-[var(--ink-soft)] font-medium mb-2">Avaliações dos pacientes</div>${aval.length?aval.slice().reverse().slice(0,5).map(a=>`<div class="border-t border-[var(--line)] py-2 text-sm"><strong>${'★'.repeat(Number(a.nota))}${'☆'.repeat(5-Number(a.nota))}</strong> · ${escaparHtml(a.paciente?.nome||'Paciente')}${a.comentario?`<div class="text-xs text-[var(--ink-soft)] mt-1">${escaparHtml(a.comentario)}</div>`:''}</div>`).join(''):'<div class="text-sm text-[var(--ink-soft)]">Nenhuma avaliação recebida ainda.</div>'}</div></div>${relatorioProfissional()}`; })()}`;
 
   const conteudoAba = abaProfissional === 'agenda' ? conteudoAgenda : abaProfissional === 'config' ? conteudoConfig : conteudoPainel;
 
@@ -2353,9 +2446,12 @@ function cartaoHorario(h, visao = 'paciente'){
   // Lógica Paciente
   if (!isProf) {
     const pacienteAtual = state.usuario.id;
-    const jaAgendado = h.pacienteId === pacienteAtual;
-    const naFila = h.fila.includes(pacienteAtual);
-    const posicaoFila = h.fila.indexOf(pacienteAtual) + 1;
+    // Se este horário está livre mas o mesmo dia/hora já foi ocupado em outra agenda (convênio),
+    // a vaga real (com fila de espera) é a que já tem paciente.
+    const alvoView = (h.status === 'livre' && espelhoReservado(h)) ? espelhoReservado(h) : h;
+    const jaAgendado = alvoView.pacienteId === pacienteAtual;
+    const naFila = alvoView.fila.includes(pacienteAtual);
+    const posicaoFila = alvoView.fila.indexOf(pacienteAtual) + 1;
 
     let acao = '';
     if (h.status === 'concluido') {
@@ -2364,10 +2460,10 @@ function cartaoHorario(h, visao = 'paciente'){
       acao = `<span class="text-xs font-medium text-[var(--primary-dark)]">Sua consulta ✓</span>`;
     } else if (naFila) {
       acao = `<span class="text-xs font-medium text-[var(--gold)]">Na fila (pos. ${posicaoFila})</span>`;
-    } else if (h.status === 'livre') {
+    } else if (alvoView.status === 'livre') {
       acao = `<button onclick="agendarComFeedback(${pacienteAtual}, ${h.id}, this)" class="btn-primary px-3 py-1.5 text-xs font-medium">Agendar</button>`;
     } else {
-      acao = `<button onclick="agendarComFeedback(${pacienteAtual}, ${h.id}, this)" class="btn-ghost px-3 py-1.5 text-xs font-medium">Entrar na fila (${h.fila.length})</button>`;
+      acao = `<button onclick="agendarComFeedback(${pacienteAtual}, ${h.id}, this)" class="btn-ghost px-3 py-1.5 text-xs font-medium">Entrar na fila (${alvoView.fila.length})</button>`;
     }
 
     return `
@@ -2377,7 +2473,7 @@ function cartaoHorario(h, visao = 'paciente'){
             <span class="font-display text-lg tabular text-[var(--primary-dark)]">${h.hora}</span>
             <span class="text-xs px-2 py-0.5 rounded-md bg-[var(--bg)]">${h.modalidade === 'online' ? '💻 Online' : '📍 Presencial'}</span>
           </div>
-          <div class="mt-2">${badgeStatus(h.status)}</div>
+          <div class="mt-2">${badgeStatus(alvoView.status)}</div>
         </div>
         <div>${acao}</div>
       </div>`;
@@ -2385,14 +2481,22 @@ function cartaoHorario(h, visao = 'paciente'){
   
   // Lógica Profissional
   const paciente = h.pacienteId ? getPaciente(h.pacienteId) : null;
+  const espelho = !h.pacienteId ? espelhoReservado(h) : null;
+  const nomeAgendaOrigem = (agendaId) => agendaId === h.agendaId ? '' : ` <span class="text-[10px] text-[var(--ink-soft)]">(${escaparHtml(state.agendas.find(a=>a.id===agendaId)?.nome||'outro convênio')})</span>`;
   const filaHtml = h.fila.length ? `
-    <div class="flex items-center gap-1.5 mt-2">
+    <div class="flex items-center gap-1.5 mt-2 flex-wrap">
       ${h.fila.map((pid, i) => `<span class="queue-chip" title="${getPaciente(pid)?.nome}">${i+1}</span>`).join('')}
-      <span class="text-xs text-[var(--ink-soft)] ml-1">${h.fila.map(pid => getPaciente(pid)?.nome).join(', ')}</span>
+    </div>
+    <div class="text-xs text-[var(--ink-soft)] mt-1 space-y-0.5">
+      ${h.fila.map((pid, i) => `<div>${i+1}. ${escaparHtml(getPaciente(pid)?.nome||'Paciente')}${nomeAgendaOrigem((h.filaOrigem||[])[i])}</div>`).join('')}
     </div>` : '';
 
   const acoes = h.status === 'concluido' ? `<span class="text-xs text-[var(--ink-soft)] border px-2 py-1 rounded">Encerrado</span>` :
-    (h.status === 'livre' ? `<span class="text-xs text-[var(--ink-soft)]">Sem paciente</span>` : `
+    (h.status === 'livre' ? (espelho
+      ? `<span class="text-xs text-[var(--ink-soft)]">Reservado em outra agenda${espelho.fila.length ? ` · ${espelho.fila.length} na fila` : ''}</span>`
+      : (dentroJanelaExclusividade(h)
+        ? `<span class="text-xs text-[var(--ink-soft)]">🔒 Exclusivo até ${formatarLimiteExclusividade(h)}</span>`
+        : `<span class="text-xs text-[var(--ink-soft)]">Sem paciente</span>`)) : `
       <div class="flex flex-col gap-2">
         <button onclick="marcarConsultaDada(${h.id})" class="btn-primary px-3 py-1.5 text-xs font-medium w-full">Compareceu</button>
         <button onclick="registrarFalta(${h.id})" class="btn-brick px-3 py-1.5 text-xs font-medium w-full">Faltou</button>
@@ -2404,9 +2508,9 @@ function cartaoHorario(h, visao = 'paciente'){
           <div class="flex items-center gap-2">
             <span class="font-display text-lg tabular text-[var(--primary-dark)]">${h.hora}</span>
             <span class="text-xs px-2 py-0.5 rounded-md bg-[var(--bg)]">${h.modalidade === 'online' ? '💻 Online' : '📍 Presencial'}</span>
-            ${badgeStatus(h.status)}
+            ${badgeStatus(espelho ? espelho.status : h.status)}
           </div>
-          <p class="text-sm mt-2">${paciente ? `Paciente: <strong class="text-[var(--ink)]">${paciente.nome}</strong>` : '<span class="text-[var(--ink-soft)]">Livre</span>'}</p>
+          <p class="text-sm mt-2">${paciente ? `Paciente: <strong class="text-[var(--ink)]">${paciente.nome}</strong>` : (espelho ? `<span class="text-[var(--ink-soft)]">Ocupado na agenda ${escaparHtml(state.agendas.find(a=>a.id===espelho.agendaId)?.nome||'')} por ${escaparHtml(getPaciente(espelho.pacienteId)?.nome||'outro paciente')}</span>` : '<span class="text-[var(--ink-soft)]">Livre</span>')}</p>
           ${filaHtml}
         </div>
         <div class="min-w-[100px] text-right">${acoes}</div>
@@ -2415,6 +2519,7 @@ function cartaoHorario(h, visao = 'paciente'){
 
 
 function render(){
+  document.querySelectorAll('.fluxo-extra-modal').forEach(el=>el.remove());
   const app = document.getElementById('app');
   if (!app) return;
   try {
@@ -2431,6 +2536,9 @@ function render(){
       app.innerHTML = telaProfissional();
     }
     renderToasts();
+    if (consultaDetalheId) document.body.insertAdjacentHTML('beforeend', modalDetalheConsulta());
+    if (historicoPacienteId) document.body.insertAdjacentHTML('beforeend', modalHistoricoPaciente());
+    if (novoHorarioAberto) document.body.insertAdjacentHTML('beforeend', modalNovoHorario());
   } catch (erro) {
     console.error('Erro ao renderizar Fluxo:', erro);
     app.innerHTML = `<div class="min-h-screen flex items-center justify-center p-6"><div class="card bg-white p-7 max-w-md text-center"><h2 class="font-display text-2xl mb-2">Não foi possível carregar esta tela</h2><p class="text-sm text-[var(--ink-soft)] mb-4">Seus dados foram preservados. Tente recarregar a página.</p><button onclick="location.reload()" class="btn-primary px-4 py-2">Recarregar</button></div></div>`;
