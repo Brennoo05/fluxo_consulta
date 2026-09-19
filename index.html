@@ -1920,31 +1920,35 @@ function linhaConsultaPaciente(c, permitirCancelar){
   };
   const prof = getProfissional(c.h.profissionalId);
   const [label, classe] = statusLabel[c.status] || [c.status, ''];
+  const ehFila = c.status === 'fila';
   return `
     <div class="card p-4 bg-white flex items-center justify-between gap-3 flex-wrap">
       <div>
         <div class="font-medium">${prof.nome}</div>
         <div class="text-xs text-[var(--ink-soft)]">${prof.especialidade || prof.profissao}</div>
         <div class="text-sm text-[var(--ink-soft)] tabular mt-1">${formatarDataCurta(c.h.data)} · ${c.h.hora} · ${c.h.modalidade === 'online' ? '💻 Online' : '📍 Presencial'}</div>
+        ${ehFila ? `<div class="text-xs text-[var(--ink-soft)] mt-1">Você é avisado(a) automaticamente se essa vaga abrir. Pode sair da fila quando quiser, sem custo.</div>` : ''}
       </div>
       <div class="flex items-center gap-2 flex-wrap justify-end">
         <span class="badge ${classe}">${label}</span>
         ${c.status === 'confirmada' ? `<button onclick="abrirReagendamento(${c.id})" class="btn-ghost px-3 py-1.5 text-xs font-medium">🔄 Reagendar</button><button onclick="simularLembrete(${c.id})" class="btn-ghost px-3 py-1.5 text-xs font-medium">⏰ Lembrete</button>${state.confirmacoes[c.id]?.status==='pendente' ? `<button onclick="confirmarConsultaPaciente(${c.id})" class="btn-primary px-3 py-1.5 text-xs font-medium">Confirmar consulta</button>` : ''}` : ''}
-        ${permitirCancelar ? `<button onclick="abrirModalCancelamento(${c.id})" class="btn-brick px-3 py-1.5 text-xs font-medium">Cancelar consulta</button>` : ''}<button onclick="abrirDetalheConsulta(${c.id})" class="btn-ghost px-3 py-1.5 text-xs font-medium">Detalhes</button>
+        ${permitirCancelar ? `<button onclick="abrirModalCancelamento(${c.id})" class="btn-brick px-3 py-1.5 text-xs font-medium">${ehFila ? 'Sair da fila' : 'Cancelar consulta'}</button>` : ''}<button onclick="abrirDetalheConsulta(${c.id})" class="btn-ghost px-3 py-1.5 text-xs font-medium">Detalhes</button>
       </div>
     </div>`;
 }
 
 function modalConfirmarCancelamento(){
+  const consulta = state.consultas.find(c => c.id === modalCancelamentoId);
+  const ehFila = consulta?.status === 'fila';
   return `
     <div class="modal-overlay">
       <div class="card bg-white p-6 max-w-sm w-full">
-        <h3 class="font-display text-lg mb-2">Cancelar consulta</h3>
-        <p class="text-sm text-[var(--ink)]">Tem certeza que deseja cancelar esta consulta?</p>
-        <p class="text-sm text-[var(--ink-soft)] mt-2">Se houver pacientes na fila de espera, o próximo paciente poderá assumir automaticamente este horário.</p>
+        <h3 class="font-display text-lg mb-2">${ehFila ? 'Sair da fila' : 'Cancelar consulta'}</h3>
+        <p class="text-sm text-[var(--ink)]">${ehFila ? 'Tem certeza que deseja sair da fila de espera deste horário?' : 'Tem certeza que deseja cancelar esta consulta?'}</p>
+        <p class="text-sm text-[var(--ink-soft)] mt-2">${ehFila ? 'Você pode entrar novamente na fila a qualquer momento, se o horário ainda estiver ocupado.' : 'Se houver pacientes na fila de espera, o próximo paciente poderá assumir automaticamente este horário.'}</p>
         <div class="flex gap-3 mt-5">
           <button onclick="fecharModalCancelamento()" class="btn-ghost flex-1 py-2 text-sm font-medium">Voltar</button>
-          <button onclick="confirmarCancelamentoPaciente()" class="btn-brick flex-1 py-2 text-sm font-medium">Confirmar cancelamento</button>
+          <button onclick="confirmarCancelamentoPaciente()" class="btn-brick flex-1 py-2 text-sm font-medium">${ehFila ? 'Confirmar saída' : 'Confirmar cancelamento'}</button>
         </div>
       </div>
     </div>`;
