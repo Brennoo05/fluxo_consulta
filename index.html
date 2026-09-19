@@ -446,7 +446,7 @@ let state = {
   anotacoesPrivadas: {},
   reagendamentos: {},
   avaliacoes: {},
-  configuracoes: { cancelamentoHoras: 4, confirmacaoHoras: 3, lembrete24h: true, lembrete2h: true, janelaExclusividadeHoras: 48 }
+  configuracoes: { cancelamentoHoras: 4, confirmacaoHoras: 24, confirmacaoV2: true, aceiteFilaMin: 120, lembrete24h: true, lembrete2h: true, janelaExclusividadeHoras: 48 }
 };
 
 
@@ -782,6 +782,9 @@ function carregarDados() {
     if (state.configuracoes.cancelamentoHoras == null) state.configuracoes.cancelamentoHoras = 4;
     if (state.configuracoes.confirmacaoHoras == null) state.configuracoes.confirmacaoHoras = 3;
     if (state.configuracoes.janelaExclusividadeHoras == null) state.configuracoes.janelaExclusividadeHoras = 48;
+    if (state.configuracoes.aceiteFilaMin == null) state.configuracoes.aceiteFilaMin = 120;
+    if (!state.configuracoes.confirmacaoV2) { state.configuracoes.confirmacaoHoras = 24; state.configuracoes.confirmacaoV2 = true; }
+    state.consultas.forEach(c => { if (c.status==='confirmada' && !state.confirmacoes[c.id]) { const h=getHorario(c.horarioId); if (h) iniciarConfirmacao(c,h); } });
     // Migração: adiciona clínicas para estados salvos de versões anteriores (sem esse conceito)
     if (!Array.isArray(state.clinicas) || !state.clinicas.length) {
       state.clinicas = clinicasPadrao();
@@ -924,11 +927,43 @@ function lembreteChave(c, tipo){ return `${c.id}:${tipo}`; }
 function processarLembretes(){
   if(!state.usuario) return;
   const agora = Date.now();
+  const limite = Number(state.configuracoes.confirmacaoHoras) || 24;
   state.consultas.filter(c=>c.status==='confirmada').forEach(c=>{
     const h=getHorario(c.horarioId); if(!h) return;
     const horas=horasAteConsulta(h);
     if(horas < 0) return;
     const prof=getProfissional(h.profissionalId); if(!prof) return;
+    const conf=state.confirmacoes[c.id];
+    const nomePac=getPaciente(c.pacienteId)?.nome||'Cliente';
+
+    if(conf && conf.status==='pendente' && conf.aceiteAte){
+      if(agora >= conf.aceiteAte){
+        if(h.fila.length){
+          conf.status='expirada';
+          notificar(c.pacienteId,'cancelamento',`Você não confirmou a tempo e a vaga com ${prof.nome} (${formatarDataCurta(h.data)} às ${h.hora}) passou para o próximo da fila.`);
+          notificar(null,'cancelamento_paciente',`${nomePac} não confirmou a vaga a tempo (${formatarDataCurta(h.data)} às ${h.hora}); a vaga passou para o próximo da fila.`,prof.id);
+          liberarHorarioEPromover(h.id,c.id);
+        } else { conf.status='confirmada'; conf.auto=true; }
+      }
+    } else if(conf && conf.status==='pendente'){
+      if(horas <= limite && h.fila.length){
+        conf.status='expirada';
+        notificar(c.pacienteId,'cancelamento',`Sua reserva com ${prof.nome} (${formatarDataCurta(h.data)} às ${h.hora}) foi liberada porque não foi confirmada dentro do prazo.`);
+        notificar(null,'cancelamento_paciente',`${nomePac} não confirmou a consulta de ${formatarDataCurta(h.data)} às ${h.hora}; a vaga foi repassada para a fila.`,prof.id);
+        liberarHorarioEPromover(h.id,c.id);
+        return;
+      }
+      if(horas <= limite && !conf.avisoPrazo){
+        conf.avisoPrazo=true;
+        notificar(c.pacienteId,'confirmacao_pendente',`O prazo para confirmar sua consulta com ${prof.nome} terminou. Confirme agora: se alguém entrar na fila, a vaga será repassada.`);
+        state.notificacoes[0].consultaId=c.id;
+      } else if(horas > limite && horas <= limite+6 && !conf.lembretePrazo){
+        conf.lembretePrazo=true;
+        notificar(c.pacienteId,'confirmacao_pendente',`Falta pouco: confirme sua consulta com ${prof.nome} até ${formatarPrazoConfirmacao(h)} para garantir a vaga.`);
+        state.notificacoes[0].consultaId=c.id;
+      }
+    }
+
     if(state.configuracoes.lembrete24h && horas <= 24 && horas > 2 && !state.lembretesEnviados[lembreteChave(c,'24h')]){
       notificar(c.pacienteId,'lembrete24',`Lembrete: sua consulta com ${prof.nome} é ${formatarDataCurta(h.data)} às ${h.hora}.`);
       state.lembretesEnviados[lembreteChave(c,'24h')] = agora;
@@ -937,13 +972,35 @@ function processarLembretes(){
       notificar(c.pacienteId,'lembrete2h',`Sua consulta com ${prof.nome} começa em até 2 horas, às ${h.hora}.`);
       state.lembretesEnviados[lembreteChave(c,'2h')] = agora;
     }
-    const limite=Number(state.configuracoes.confirmacaoHoras)||3;
-    if(horas <= limite && !state.confirmacoes[c.id]){
-      state.confirmacoes[c.id]={status:'pendente', criadoEm:new Date().toISOString()};
-      notificar(c.pacienteId,'confirmacao_pendente',`Confirme sua consulta com ${prof.nome} às ${h.hora}. A confirmação é necessária antes do atendimento.`);
-    }
   });
 }
+function prazoConfirmacao(h){
+  const tit = state.consultas.find(x => x.horarioId===h.id && x.status==='confirmada');
+  const ac = tit && state.confirmacoes[tit.id]?.aceiteAte;
+  if (ac) return new Date(ac);
+  const d = new Date(h.data + 'T' + h.hora + ':00');
+  d.setHours(d.getHours() - (Number(state.configuracoes.confirmacaoHoras) || 24));
+  return d;
+}
+function formatarPrazoConfirmacao(h){
+  return prazoConfirmacao(h).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+}
+// true = ficou pendente; false = confirmada automaticamente (agendou dentro do prazo)
+function iniciarConfirmacao(c, h){
+  if (horasAteConsulta(h) <= (Number(state.configuracoes.confirmacaoHoras) || 24)) {
+    state.confirmacoes[c.id] = { status:'confirmada', auto:true, confirmadoEm:new Date().toISOString() };
+    return false;
+  }
+  state.confirmacoes[c.id] = { status:'pendente', criadoEm:new Date().toISOString() };
+  return true;
+}
+function textoFila(h){
+  const tit = state.consultas.find(x => x.horarioId===h.id && x.status==='confirmada');
+  return state.confirmacoes[tit?.id]?.status === 'pendente'
+    ? `Quem reservou ainda não confirmou. Se não confirmar até ${formatarPrazoConfirmacao(h)}, a vaga passa para você automaticamente.`
+    : 'Você é avisado(a) automaticamente se essa vaga abrir.';
+}
+
 function consultaPodeSerCancelada(c){
   const h=getHorario(c.horarioId); if(!h) return {ok:false,motivo:'Consulta não encontrada.'};
   const limite=Number(state.configuracoes.cancelamentoHoras)||4;
@@ -1003,10 +1060,16 @@ function agendar(pacienteId, horarioId, opcoes = {}){
   if (alvo.status === 'livre') {
     alvo.status = 'ocupado';
     alvo.pacienteId = pacienteId;
-    state.consultas.push({ id: state.proximoIdConsulta++, pacienteId, horarioId: alvo.id, status: 'confirmada', alertaFaltas: muitasFaltas });
+    const nova = { id: state.proximoIdConsulta++, pacienteId, horarioId: alvo.id, status: 'confirmada', alertaFaltas: muitasFaltas };
+    state.consultas.push(nova);
+    const pendente = iniciarConfirmacao(nova, alvo);
     if (!opcoes.silencioso) {
-      notificar(pacienteId, 'confirmacao',
-        `Sua consulta com ${prof.nome} foi confirmada para ${formatarDataCurta(alvo.data)} às ${alvo.hora}.`);
+      if (pendente) {
+        notificar(pacienteId, 'confirmacao_pendente', `Consulta reservada com ${prof.nome} para ${formatarDataCurta(alvo.data)} às ${alvo.hora}. Confirme até ${formatarPrazoConfirmacao(alvo)}, senão a vaga poderá passar para a fila de espera.`);
+        state.notificacoes[0].consultaId = nova.id;
+      } else {
+        notificar(pacienteId, 'confirmacao', `Sua consulta com ${prof.nome} foi confirmada para ${formatarDataCurta(alvo.data)} às ${alvo.hora}.`);
+      }
       notificar(null, 'novo_agendamento', `${getPaciente(pacienteId)?.nome || 'Cliente'} agendou ${formatarDataCurta(alvo.data)} às ${alvo.hora}.`, prof.id);
       if (muitasFaltas) notificar(null, 'alerta_faltas', `Atenção: ${getPaciente(pacienteId)?.nome || 'Cliente'} possui ${contarFaltasPaciente(pacienteId)} faltas registradas.`, prof.id);
     }
@@ -1016,9 +1079,20 @@ function agendar(pacienteId, horarioId, opcoes = {}){
     alvo.filaOrigem.push(h.agendaId);
     alvo.status = 'lotado';
     state.consultas.push({ id: state.proximoIdConsulta++, pacienteId, horarioId: alvo.id, status: 'fila' });
+    // Avisa o titular (ainda sem confirmação) que alguém entrou na fila
+    if (!opcoes.silencioso) {
+      const tit = state.consultas.find(x => x.horarioId===alvo.id && x.status==='confirmada');
+      const conf = tit && state.confirmacoes[tit.id];
+      if (conf && conf.status==='pendente' && !conf.avisoFila && horasAteConsulta(alvo) > (Number(state.configuracoes.confirmacaoHoras)||24)) {
+        conf.avisoFila = true;
+        notificar(tit.pacienteId, 'confirmacao_pendente', `Alguém entrou na fila de espera para sua consulta com ${prof.nome} (${formatarDataCurta(alvo.data)} às ${alvo.hora}). Confirme até ${formatarPrazoConfirmacao(alvo)} para garantir sua vaga.`);
+        state.notificacoes[0].consultaId = tit.id;
+      }
+    }
     if (!opcoes.silencioso) {
       notificar(pacienteId, 'fila',
         `Você entrou na fila de espera para ${formatarDataCurta(alvo.data)} às ${alvo.hora}. Sua posição é ${alvo.fila.length}.`);
+      notificar(null, 'fila', `${getPaciente(pacienteId)?.nome || 'Cliente'} entrou na fila de espera para ${formatarDataCurta(alvo.data)} às ${alvo.hora} (posição ${alvo.fila.length}).`, prof.id);
     }
   }
   if (!opcoes.silencioso) render();
@@ -1032,7 +1106,11 @@ function agendarComFeedback(pacienteId, horarioId, botao){
     const antes = getHorario(horarioId)?.status;
     agendar(pacienteId, horarioId);
     const depois = getHorario(horarioId)?.status;
-    if (depois && depois !== antes) mostrarToast(depois === 'lotado' ? 'Você entrou na fila de espera.' : 'Consulta agendada com sucesso.');
+    if (depois && depois !== antes) {
+      const c = state.consultas.filter(x => x.pacienteId===pacienteId && x.horarioId===horarioId).pop();
+      const pend = c && state.confirmacoes[c.id]?.status === 'pendente';
+      mostrarToast(depois === 'lotado' ? 'Você entrou na fila de espera.' : (pend ? 'Consulta reservada! Confirme até ' + formatarPrazoConfirmacao(getHorario(horarioId)) + ' para garantir a vaga.' : 'Consulta agendada com sucesso.'));
+    }
   }, 180);
 }
 
@@ -1052,10 +1130,19 @@ function liberarHorarioEPromover(horarioId, consultaCanceladaId){
     h.status = 'ocupado';
 
     const consultaFila = state.consultas.find(c => c.horarioId === horarioId && c.pacienteId === proximoId && c.status === 'fila');
-    if (consultaFila) consultaFila.status = 'confirmada';
-
+    let pend = false;
+    if (consultaFila) { consultaFila.status = 'confirmada'; pend = iniciarConfirmacao(consultaFila, h); }
     notificar(proximoId, 'promocao',
-      `Uma vaga foi liberada. Você foi promovido(a) da fila para a consulta de ${formatarDataCurta(h.data)} às ${h.hora}.`);
+      `Uma vaga foi liberada. Você foi promovido(a) da fila para a consulta de ${formatarDataCurta(h.data)} às ${h.hora}.` + (pend ? ` Confirme até ${formatarPrazoConfirmacao(h)} para garantir a vaga.` : ''));
+    if (pend && consultaFila) state.notificacoes[0].consultaId = consultaFila.id;
+    // Janela curta de aceite: só quando há mais gente na fila atrás e ainda dá tempo
+    const aceiteMin = Number(state.configuracoes.aceiteFilaMin) || 0;
+    if (!pend && consultaFila && h.fila.length > 0 && aceiteMin > 0 && horasAteConsulta(h) * 60 > aceiteMin) {
+      const ate = Date.now() + aceiteMin * 60000;
+      state.confirmacoes[consultaFila.id] = { status:'pendente', aceiteAte: ate, criadoEm: new Date().toISOString() };
+      notificar(proximoId, 'confirmacao_pendente', `Atenção: confirme sua vaga em ${formatarDataCurta(h.data)} às ${h.hora} até ${new Date(ate).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} (${aceiteMin} min). Sem confirmação, a vaga passa para o próximo da fila.`);
+      state.notificacoes[0].consultaId = consultaFila.id;
+    }
   } else {
     h.pacienteId = null;
     h.status = 'livre';
@@ -1360,7 +1447,7 @@ function painelNotificacoes(){
   const minhas = state.notificacoes.filter(n => (ehPaciente ? n.pacienteId === state.usuario.id : n.profissionalId === state.usuario.id)).slice(0, 30);
   const categoria = n => ['confirmacao_pendente','cancelamento_paciente','novo_agendamento','alerta_faltas'].includes(n.tipo) ? 'Ação necessária' : ['lembrete24','lembrete2h','fila','promocao','confirmacao'].includes(n.tipo) ? 'Atualização' : ['realizada','cancelamento','cancelamento_profissional','fila_encerrada'].includes(n.tipo) ? 'Informação' : 'Atualização';
   const grupos = ['Ação necessária','Atualização','Informação'].map(cat=>({cat,itens:minhas.filter(n=>categoria(n)===cat)})).filter(g=>g.itens.length);
-  return `<div class="notif-panel card shadow-lg bg-[var(--surface)]"><div class="flex items-center justify-between px-3 py-2 border-b border-[var(--line)]"><span class="font-medium text-sm">Notificações</span><button onclick="marcarTodasNotificacoesLidas()" class="text-xs text-[var(--primary)] underline underline-offset-2">Marcar todas como lidas</button></div><div class="p-2">${grupos.length?grupos.map(g=>`<div class="mb-3"><div class="notification-category px-2 pt-1">${g.cat}</div>${g.itens.map(n=>`<div class="p-3 rounded-lg text-sm ${n.lida?'bg-white':'bg-[var(--gold-bg)]'} cursor-pointer mb-1" onclick="marcarNotificacaoLida(${n.id})"><div class="flex items-start gap-2"><span>${iconeTipoNotificacao(n.tipo)}</span><div class="flex-1"><p>${escaparHtml(n.mensagem)}</p><p class="text-xs text-[var(--ink-soft)] mt-1">${new Date(n.criadaEm).toLocaleString('pt-BR')}</p>${n.tipo==='confirmacao_pendente'&&ehPaciente?'<button onclick="event.stopPropagation(); const c=state.consultas.find(c=>state.confirmacoes[c.id]?.status===\'pendente\'); if(c) confirmarConsultaPaciente(c.id)" class="btn-primary px-2.5 py-1.5 text-xs mt-2">Confirmar consulta</button>':''}</div>${!n.lida?'<span class="w-2 h-2 rounded-full bg-[var(--brick)] mt-1 flex-shrink-0"></span>':''}</div></div>`).join('')}</div>`).join(''):'<div class="p-4 text-sm text-[var(--ink-soft)]">Sem notificações por enquanto.</div>'}</div></div>`;
+  return `<div class="notif-panel card shadow-lg bg-[var(--surface)]"><div class="flex items-center justify-between px-3 py-2 border-b border-[var(--line)]"><span class="font-medium text-sm">Notificações</span><button onclick="marcarTodasNotificacoesLidas()" class="text-xs text-[var(--primary)] underline underline-offset-2">Marcar todas como lidas</button></div><div class="p-2">${grupos.length?grupos.map(g=>`<div class="mb-3"><div class="notification-category px-2 pt-1">${g.cat}</div>${g.itens.map(n=>`<div class="p-3 rounded-lg text-sm ${n.lida?'bg-white':'bg-[var(--gold-bg)]'} cursor-pointer mb-1" onclick="marcarNotificacaoLida(${n.id})"><div class="flex items-start gap-2"><span>${iconeTipoNotificacao(n.tipo)}</span><div class="flex-1"><p>${escaparHtml(n.mensagem)}</p><p class="text-xs text-[var(--ink-soft)] mt-1">${new Date(n.criadaEm).toLocaleString('pt-BR')}</p>${n.consultaId&&state.confirmacoes[n.consultaId]?.status==='pendente'&&ehPaciente?'<button onclick="event.stopPropagation();confirmarConsultaPaciente('+n.consultaId+')" class="btn-primary px-2.5 py-1.5 text-xs mt-2">Confirmar consulta</button>':''}</div>${!n.lida?'<span class="w-2 h-2 rounded-full bg-[var(--brick)] mt-1 flex-shrink-0"></span>':''}</div></div>`).join('')}</div>`).join(''):'<div class="p-4 text-sm text-[var(--ink-soft)]">Sem notificações por enquanto.</div>'}</div></div>`;
 }
 
 
@@ -1899,6 +1986,8 @@ function telaPacienteAgenda(){
 
       ${seletorAgendaPaciente(prof)}
 
+      <div class="card p-3 bg-white text-xs text-[var(--ink-soft)]">ℹ️ Ao agendar, sua consulta fica <strong>reservada</strong> e precisa ser <strong>confirmada até ${state.configuracoes.confirmacaoHoras}h antes</strong>. Sem confirmação, a vaga pode ser repassada para quem está na fila de espera.</div>
+
       <div>
         <h3 class="font-medium text-[var(--ink)] mb-3 border-b border-[var(--line)] pb-2">Horários para ${formatarDataCompleta(state.diaSelecionado)}</h3>
         <div class="space-y-3">
@@ -1921,16 +2010,18 @@ function linhaConsultaPaciente(c, permitirCancelar){
   const prof = getProfissional(c.h.profissionalId);
   const [label, classe] = statusLabel[c.status] || [c.status, ''];
   const ehFila = c.status === 'fila';
+  const pend = c.status==='confirmada' && state.confirmacoes[c.id]?.status==='pendente';
   return `
     <div class="card p-4 bg-white flex items-center justify-between gap-3 flex-wrap">
       <div>
         <div class="font-medium">${prof.nome}</div>
         <div class="text-xs text-[var(--ink-soft)]">${prof.especialidade || prof.profissao}</div>
         <div class="text-sm text-[var(--ink-soft)] tabular mt-1">${formatarDataCurta(c.h.data)} · ${c.h.hora} · ${c.h.modalidade === 'online' ? '💻 Online' : '📍 Presencial'}</div>
-        ${ehFila ? `<div class="text-xs text-[var(--ink-soft)] mt-1">Você é avisado(a) automaticamente se essa vaga abrir. Pode sair da fila quando quiser, sem custo.</div>` : ''}
+        ${pend ? `<div class="text-xs text-[var(--brick)] mt-1">⚠️ Confirme até ${formatarPrazoConfirmacao(c.h)} ou sua vaga poderá passar para a fila de espera.</div>` : ''}
+        ${ehFila ? `<div class="text-xs text-[var(--ink-soft)] mt-1">${textoFila(c.h)} Pode sair da fila quando quiser, sem custo.</div>` : ''}
       </div>
       <div class="flex items-center gap-2 flex-wrap justify-end">
-        <span class="badge ${classe}">${label}</span>
+        <span class="badge ${pend?'badge-lotado':classe}">${pend?'Aguardando confirmação':label}</span>
         ${c.status === 'confirmada' ? `<button onclick="abrirReagendamento(${c.id})" class="btn-ghost px-3 py-1.5 text-xs font-medium">🔄 Reagendar</button><button onclick="simularLembrete(${c.id})" class="btn-ghost px-3 py-1.5 text-xs font-medium">⏰ Lembrete</button>${state.confirmacoes[c.id]?.status==='pendente' ? `<button onclick="confirmarConsultaPaciente(${c.id})" class="btn-primary px-3 py-1.5 text-xs font-medium">Confirmar consulta</button>` : ''}` : ''}
         ${permitirCancelar ? `<button onclick="abrirModalCancelamento(${c.id})" class="btn-brick px-3 py-1.5 text-xs font-medium">${ehFila ? 'Sair da fila' : 'Cancelar consulta'}</button>` : ''}<button onclick="abrirDetalheConsulta(${c.id})" class="btn-ghost px-3 py-1.5 text-xs font-medium">Detalhes</button>
       </div>
@@ -2004,6 +2095,7 @@ function salvarConfiguracoesAgenda(){
   state.configuracoes.confirmacaoHoras=Math.max(1,Number(document.getElementById('cfg-conf')?.value||3));
   state.configuracoes.cancelamentoHoras=Math.max(0,Number(document.getElementById('cfg-canc')?.value||4));
   state.configuracoes.janelaExclusividadeHoras=Math.max(0,Number(document.getElementById('cfg-janela')?.value||0));
+  state.configuracoes.aceiteFilaMin=Math.max(0,Number(document.getElementById('cfg-aceite')?.value||0));
   mostrarToast('Regras da agenda atualizadas.'); render();
 }
 
@@ -2174,7 +2266,7 @@ function telaProfissional(){
         <p class="text-sm text-[var(--ink-soft)]">Aqui está um resumo da sua agenda de hoje.</p>
       </div>
 
-      ${(()=>{ const prox=futuras[0]; const pend=state.confirmacoes ? Object.values(state.confirmacoes).filter(x=>x.status==='pendente').length : 0; const enc=consultasDoProfissional.filter(x=>['realizada','faltou'].includes(x.consulta.status)); const taxa=enc.length?Math.round(enc.filter(x=>x.consulta.status==='realizada').length/enc.length*100):0; const canc=consultasDoProfissional.filter(x=>x.consulta.status==='cancelada').length; return `<div class="grid grid-cols-2 sm:grid-cols-4 gap-3"><div class="stat-card"><div class="stat-num">${horariosHoje.length}</div><div class="text-xs text-[var(--ink-soft)] mt-1">Consultas hoje</div></div><div class="stat-card"><div class="stat-num">${livresHoje}</div><div class="text-xs text-[var(--ink-soft)] mt-1">Horários livres</div></div><div class="stat-card"><div class="stat-num">${emFilaHoje}</div><div class="text-xs text-[var(--ink-soft)] mt-1">Em fila</div></div><div class="stat-card"><div class="stat-num">${taxa}%</div><div class="text-xs text-[var(--ink-soft)] mt-1">Comparecimento</div></div></div><div class="grid sm:grid-cols-3 gap-3"><div class="card bg-white p-4"><div class="text-xs text-[var(--ink-soft)]">Próxima consulta</div><div class="font-medium mt-1">${prox?`${formatarDataCurta(prox.horario.data)} · ${prox.horario.hora}`:'Nenhuma'}</div><div class="text-xs mt-1">${prox?escaparHtml(getPaciente(prox.consulta.pacienteId)?.nome||'Paciente'):'Sem consultas futuras'}</div></div><div class="card bg-white p-4"><div class="text-xs text-[var(--ink-soft)]">Confirmações pendentes</div><div class="font-display text-2xl text-[var(--primary-dark)] mt-1">${pend}</div><div class="text-xs mt-1">Aguardando ação</div></div><div class="card bg-white p-4"><div class="text-xs text-[var(--ink-soft)]">Cancelamentos registrados</div><div class="font-display text-2xl text-[var(--primary-dark)] mt-1">${canc}</div><div class="text-xs mt-1">Consulte os detalhes na Agenda</div></div></div><div class="action-row"><button onclick="abrirNovoHorario()" class="btn-primary px-4 py-2 text-sm font-medium">＋ Novo horário</button><button onclick="irParaAbaProfissional('agenda')" class="btn-ghost px-4 py-2 text-sm">Abrir agenda</button></div>`; })()}
+      ${(()=>{ const prox=futuras[0]; const pend=futuras.filter(x=>state.confirmacoes[x.consulta.id]?.status==='pendente').length; const enc=consultasDoProfissional.filter(x=>['realizada','faltou'].includes(x.consulta.status)); const taxa=enc.length?Math.round(enc.filter(x=>x.consulta.status==='realizada').length/enc.length*100):0; const canc=consultasDoProfissional.filter(x=>x.consulta.status==='cancelada').length; return `<div class="grid grid-cols-2 sm:grid-cols-4 gap-3"><div class="stat-card"><div class="stat-num">${horariosHoje.length}</div><div class="text-xs text-[var(--ink-soft)] mt-1">Consultas hoje</div></div><div class="stat-card"><div class="stat-num">${livresHoje}</div><div class="text-xs text-[var(--ink-soft)] mt-1">Horários livres</div></div><div class="stat-card"><div class="stat-num">${emFilaHoje}</div><div class="text-xs text-[var(--ink-soft)] mt-1">Em fila</div></div><div class="stat-card"><div class="stat-num">${taxa}%</div><div class="text-xs text-[var(--ink-soft)] mt-1">Comparecimento</div></div></div><div class="grid sm:grid-cols-3 gap-3"><div class="card bg-white p-4"><div class="text-xs text-[var(--ink-soft)]">Próxima consulta</div><div class="font-medium mt-1">${prox?`${formatarDataCurta(prox.horario.data)} · ${prox.horario.hora}`:'Nenhuma'}</div><div class="text-xs mt-1">${prox?escaparHtml(getPaciente(prox.consulta.pacienteId)?.nome||'Paciente'):'Sem consultas futuras'}</div></div><div class="card bg-white p-4"><div class="text-xs text-[var(--ink-soft)]">Confirmações pendentes</div><div class="font-display text-2xl text-[var(--primary-dark)] mt-1">${pend}</div><div class="text-xs mt-1">Aguardando ação</div></div><div class="card bg-white p-4"><div class="text-xs text-[var(--ink-soft)]">Cancelamentos registrados</div><div class="font-display text-2xl text-[var(--primary-dark)] mt-1">${canc}</div><div class="text-xs mt-1">Consulte os detalhes na Agenda</div></div></div><div class="action-row"><button onclick="abrirNovoHorario()" class="btn-primary px-4 py-2 text-sm font-medium">＋ Novo horário</button><button onclick="irParaAbaProfissional('agenda')" class="btn-ghost px-4 py-2 text-sm">Abrir agenda</button></div>`; })()}
 
       <div>
         <div class="flex items-center justify-between gap-3 mb-3 border-b border-[var(--line)] pb-2">
@@ -2196,7 +2288,7 @@ function telaProfissional(){
                 <p class="text-sm mt-1">Paciente: <strong>${escaparHtml(paciente?.nome || 'Paciente')}</strong></p>
               </div>
               <span class="text-xs">${h.modalidade === 'online' ? '💻 Online' : '📍 Presencial'}</span>
-              <span class="badge badge-ocupado">Confirmada</span><button onclick="abrirDetalheConsulta(${x.consulta.id})" class="btn-ghost px-2 py-1 text-xs">Detalhes</button>
+              ${state.confirmacoes[x.consulta.id]?.status==='pendente'?'<span class="badge badge-lotado">Aguardando confirmação</span>':'<span class="badge badge-ocupado">Confirmada</span>'}<button onclick="abrirDetalheConsulta(${x.consulta.id})" class="btn-ghost px-2 py-1 text-xs">Detalhes</button>
             </div>`;
           }).join('') : `<div class="p-5 text-sm text-[var(--ink-soft)]">Nenhuma consulta futura agendada.</div>`}
         </div>
@@ -2297,7 +2389,7 @@ function telaProfissional(){
                   <span class="font-display text-lg text-[var(--primary-dark)]">${formatarDataCurta(h.data)}</span>
                   <span class="font-medium tabular">${h.hora}</span>
                   <span class="text-xs px-2 py-0.5 rounded-md bg-[var(--bg)]">${h.modalidade==='online'?'💻 Online':'📍 Presencial'}</span>
-                  ${passada?'<span class="badge badge-concluido">Aguardando registro</span>':'<span class="badge badge-ocupado">Agendada</span>'}
+                  ${passada?'<span class="badge badge-concluido">Aguardando registro</span>':(state.confirmacoes[c.id]?.status==='pendente'?'<span class="badge badge-lotado">Aguardando confirmação</span>':'<span class="badge badge-ocupado">Agendada</span>')}
                 </div>
                 <p class="text-sm mt-1">Paciente: <strong>${escaparHtml(paciente?.nome||'Paciente')}</strong></p>
               </div>
@@ -2350,12 +2442,16 @@ function telaProfissional(){
         <div class="grid sm:grid-cols-2 gap-3">
           <label class="flex items-center gap-2 text-sm"><input id="cfg-24h" type="checkbox" ${state.configuracoes.lembrete24h?'checked':''}> Lembrete 24h antes</label>
           <label class="flex items-center gap-2 text-sm"><input id="cfg-2h" type="checkbox" ${state.configuracoes.lembrete2h?'checked':''}> Lembrete 2h antes</label>
-          <label class="text-sm">Confirmação obrigatória com <input id="cfg-conf" type="number" min="1" max="48" value="${state.configuracoes.confirmacaoHoras}" class="w-16 border rounded px-2 py-1"> h de antecedência</label>
+          <label class="text-sm">Paciente deve confirmar até <input id="cfg-conf" type="number" min="1" max="48" value="${state.configuracoes.confirmacaoHoras}" class="w-16 border rounded px-2 py-1"> h antes (senão a vaga vai para a fila)</label>
           <label class="text-sm">Cancelamento permitido até <input id="cfg-canc" type="number" min="0" max="72" value="${state.configuracoes.cancelamentoHoras}" class="w-16 border rounded px-2 py-1"> h antes</label>
         </div>
         <div class="mt-4 pt-4 border-t border-[var(--line)]">
           <label class="text-sm">Janela de exclusividade: reservar <input id="cfg-janela" type="number" min="0" max="720" value="${state.configuracoes.janelaExclusividadeHoras}" class="w-16 border rounded px-2 py-1"> h só para a agenda de maior prioridade antes de liberar para as demais</label>
           <p class="text-xs text-[var(--ink-soft)] mt-1">Coloque 0 para desativar (todas as agendas competem pelo horário desde o início, por ordem de chegada).</p>
+        </div>
+        <div class="mt-4 pt-4 border-t border-[var(--line)]">
+          <label class="text-sm">Quem sobe da fila tem <input id="cfg-aceite" type="number" min="0" max="720" value="${state.configuracoes.aceiteFilaMin}" class="w-16 border rounded px-2 py-1"> min para confirmar a vaga; senão ela passa para o próximo da fila</label>
+          <p class="text-xs text-[var(--ink-soft)] mt-1">Vale só quando ainda há mais gente esperando e falta tempo para a consulta. Coloque 0 para desativar (quem sobe da fila já fica confirmado).</p>
         </div>
         <button onclick="salvarConfiguracoesAgenda()" class="btn-primary px-4 py-2 text-sm mt-4">Salvar regras</button>
       </div>
@@ -2433,6 +2529,10 @@ function barraNavegacao(){
     ${barraInferior}`;
 }
 
+function badgeConfirmacaoPendente(h){
+  const c = state.consultas.find(x => x.horarioId===h.id && x.status==='confirmada');
+  return c && state.confirmacoes[c.id]?.status === 'pendente' ? '<span class="badge badge-lotado">Aguardando confirmação</span>' : '';
+}
 function badgeStatus(status){
   const mapa = {
     livre: ['Livre', 'badge-livre'],
@@ -2512,7 +2612,7 @@ function cartaoHorario(h, visao = 'paciente'){
           <div class="flex items-center gap-2">
             <span class="font-display text-lg tabular text-[var(--primary-dark)]">${h.hora}</span>
             <span class="text-xs px-2 py-0.5 rounded-md bg-[var(--bg)]">${h.modalidade === 'online' ? '💻 Online' : '📍 Presencial'}</span>
-            ${badgeStatus(espelho ? espelho.status : h.status)}
+            ${badgeStatus(espelho ? espelho.status : h.status)} ${badgeConfirmacaoPendente(h)}
           </div>
           <p class="text-sm mt-2">${paciente ? `Paciente: <strong class="text-[var(--ink)]">${paciente.nome}</strong>` : (espelho ? `<span class="text-[var(--ink-soft)]">Ocupado na agenda ${escaparHtml(state.agendas.find(a=>a.id===espelho.agendaId)?.nome||'')} por ${escaparHtml(getPaciente(espelho.pacienteId)?.nome||'outro paciente')}</span>` : '<span class="text-[var(--ink-soft)]">Livre</span>')}</p>
           ${filaHtml}
@@ -2551,7 +2651,7 @@ function render(){
 
 carregarDados();
 render();
-setInterval(() => { processarLembretes(); salvarDados(); }, 60000);
+setInterval(() => { const n = state.notificacoes.length; processarLembretes(); salvarDados(); if (state.notificacoes.length !== n) render(); }, 60000);
 </script>
 
 
