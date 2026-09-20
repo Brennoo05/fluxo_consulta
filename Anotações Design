@@ -1,0 +1,160 @@
+DESIGN ----------------------------------------------------------------------------
+
+1. Entender o problema
+
+levantar informações sobre:
+
+Profissionais autônomos da saúde
+Exemplos: Psicólogos, Fisioterapeutas, Nutricionistas, Fonoaudiólogos, etc.
+
+Perguntas: (para o profissional)
+
+Como eles agendam consultas hoje?
+Usam WhatsApp?
+Usam agenda de papel?
+Têm problemas com cancelamentos?
+Perdem pacientes por esquecimento?
+Conseguem controlar horários disponíveis facilmente?
+
+Perguntas: (para clientes)
+
+É fácil marcar consulta?
+Precisam enviar muitas mensagens?
+Conseguem visualizar horários livres?
+Recebem lembretes?
+Já perderam consultas por esquecimento?
+2. Pesquisa com usuários
+
+--------------------------------------------------------------------
+Entrevista
+
+Entre 3 e 5 profissionais.
+Profissionais
+ 
+Como você agenda seus atendimentos?
+Qual sua maior dificuldade?
+O que mais consome seu tempo?
+Como lida com cancelamentos?
+
+Pacientes
+
+Como costuma marcar consultas?
+O que considera mais difícil?
+Gostaria de escolher horários sozinho?
+3. Criar Personas
+
+--------------------------------------------------------------------
+Criar Persona Profissional (Se aprofundar)
+olhar slides aula de sabado. 
+criar 2 personas -> Paciente e Cliente
+
+--------------------------------------------------------------------
+Situação atual (Pesquisar mais a fundo)
+exemplo abaixo: 
+Paciente:
+
+Envia mensagem.
+Espera resposta.
+Recebe horários.
+Escolhe um.
+Confirma.
+
+Problemas:
+
+Demora.
+Troca excessiva de mensagens.
+Possíveis erros.
+Situação futura
+
+Paciente:
+
+Entra no sistema.
+Visualiza horários.
+Agenda.
+Recebe confirmação.
+Recebe lembrete.
+
+--------------------------------------------------------------------
+Levantar requisitos Funcionais
+exemplo: 
+O sistema deve:
+Permitir cadastro de profissionais.
+Permitir cadastro de pacientes.
+Exibir horários disponíveis.
+Permitir agendamento.
+Permitir cancelamento.
+Gerenciar lista de espera.
+Enviar notificações.
+Mostrar histórico de consultas.
+Não Funcionais
+
+O sistema deve:
+Ser acessível.
+Funcionar em celular.
+Ter boa usabilidade.
+Possuir interface intuitiva.
+Apresentar contraste adequado.
+Permitir aumento de fonte.
+6. Levantar requisitos de acessibilidade
+
+AVERIGUAR!!!!!!!!!!!!!!!!!!!
+Como acessibilidade faz parte do tema, vocês devem pesquisar WCAG. 
+Exemplos:
+Contraste adequado.
+Navegação por teclado.
+Textos legíveis.
+Feedback visual claro.
+Compatibilidade com leitores de tela.
+Botões grandes para toque.
+
+--------------------------------------------------------------------
+Arquitetura da Informação
+
+Definir quais telas existirão. (tela para Paciente e tela para cliente)
+exemplo abaixo: 
+Cliente
+Login
+Cadastro
+Escolher profissional
+Agenda
+Confirmar consulta
+Minhas consultas
+Profissional
+Login
+Agenda
+Horários disponíveis
+Pacientes
+Lista de espera
+
+--------------------------------------------------------------------
+Fluxos de Usuário
+
+Exemplo:
+
+Agendar consulta
+
+Início
+↓
+Selecionar profissional
+↓
+Visualizar agenda
+↓
+Escolher horário
+↓
+Confirmar
+↓
+Consulta agendada
+
+--------------------------------------------------------------------
+Wireframes
+Criar:
+
+Tela de login
+Tela de agenda
+Tela de seleção de horários
+Tela de lista de espera
+Tela de notificações
+10. Protótipo no Figma
+
+Baixa fidelidade → Alta fidelidade.
+

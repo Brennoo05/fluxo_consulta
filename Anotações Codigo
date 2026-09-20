@@ -1,0 +1,192 @@
+
+17/09 
+Recursos Já implementado:
+            Agendamento de consultas.
+            Lista de espera automática.
+            Notificações e lembretes.
+            Reagendamento.
+            Horários recorrentes.
+            Bloqueio de períodos (férias/folgas).
+            Avaliações.
+            Histórico e anotações privadas.
+            Gestão de múltiplas agendas/convênios.
+
+Sugestões de Melhorias: 
+1. Adicionar um Painel inicial com Prioridades do dia; 
+2. Diminuir o Processo de agendamento; 
+3. Sistema de encaixe inteligente: Preferências da fila (cliente escolher suas prioridades) 
+4. Melhorar acessibilidade; 
+5. Perfil mais completo do profissional;
+6. Prevenção de faltas -> Confirmação em 1 clique Sem precisar entrar na plataforma;
+7. Histórico visual do paciente: Anotações privadas e historico. Criar linha do tempo visual;
+8. Onboarding para novos usuários -> evitar telas vazias. 
+9. Busca mais inteligente; 
+
+--------------------------------------------------------------------
+1. Dashboard mais orientado à ação:
+
+Hoje o profissional normalmente quer responder três perguntas ao abrir o sistema:
+                        Quem vou atender hoje?
+                        Quem cancelou?
+                        Onde preciso agir?
+
+Mas poderia ter um painel inicial com:
+                        Prioridades do dia
+                        ⚠️ 2 consultas aguardando confirmação
+                        📋 1 paciente na fila de espera
+                        🕐 3 horários livres amanhã
+                        ❌ 1 cancelamento recente
+
+--------------------------------------------------------------------
+2. Processo de agendamento em menos etapas
+
+Para pacientes:
+Atualmente o fluxo parece ser:
+Profissional → Agenda → Dia → Horário → Confirmação.
+
+Uma melhoria seria:
+"Próximo horário disponível"
+
+Botão: Agendar o primeiro horário disponível
+
+Muitos pacientes não querem analisar calendário.
+
+--------------------------------------------------------------------
+3. Sistema de encaixe inteligente
+Vocês já possuem fila de espera.
+
+Mas poderiam evoluir para:
+    Preferências da fila
+        Paciente informa:
+                        Manhã
+                        Tarde
+                        Noite
+    ou
+        Qualquer horário
+        Quando surgir vaga: o sistema prioriza quem possui disponibilidade compatível.
+        Isso gera uma ótima justificativa acadêmica.
+
+--------------------------------------------------------------------
+4. Melhorar a acessibilidade
+
+Como a palavra "Acessível" está no tema, esta é uma oportunidade forte.
+Adicionar:
+Controle de tamanho da fonte
+Pequena
+Normal
+Grande
+Alto contraste
+Modo acessível.
+Leitor de tela
+Uso correto de:
+aria-label
+aria-describedby
+foco por teclado
+Não depender apenas de cores
+Por exemplo:
+🔴 Cancelado
+🟢 Confirmado
+Mas também exibir texto.
+
+--------------------------------------------------------------------
+5. Perfil mais completo do profissional
+
+Hoje já existem:
+especialidade
+modalidade
+descrição
+avaliações
+
+Poderiam incluir:
+Tempo médio de consulta
+50 min
+Faixa de preço
+R$ 120 – R$ 180
+Idiomas
+Português
+Inglês
+Atendimento para PCD
+Sim / Não
+Isso ajuda pacientes a decidir mais rápido.
+
+--------------------------------------------------------------------
+6. Prevenção de faltas
+Essa é uma dor enorme dos profissionais.
+Você já possui:
+lembretes
+confirmação prévia
+Mas poderia incluir:
+Confirmação em 1 clique
+"Você comparecerá?"
+✅ Sim
+❌ Não
+Sem precisar entrar na plataforma.
+
+--------------------------------------------------------------------
+7. Histórico visual do paciente
+
+Hoje existem anotações privadas e histórico.
+Poderia mostrar:
+Paciente Ana
+Consulta 01/08 ✔
+Consulta 08/08 ✔
+Consulta 15/08 ❌
+Consulta 22/08 ✔
+Linha do tempo visual.
+
+--------------------------------------------------------------------
+8. Onboarding para novos usuários
+
+Quando o paciente entra pela primeira vez:
+Escolha especialidade.
+Escolha modalidade.
+Escolha região.
+Veja profissionais recomendados.
+Isso evita telas vazias.
+--------------------------------------------------------------------
+9. Busca mais inteligente
+
+Hoje vejo filtros por especialidade e modalidade.
+
+Poderia permitir:
+Pesquisar:
+Psicólogo online
+Fisioterapeuta
+Nutricionista
+Sem precisar navegar.
+
+--------------------------------------------------------------------
+10. Funcionalidade que pode destacar o TCC (verificar e ver como funcionar)
+
+Se eu fosse orientador, a melhoria que mais chamaria atenção seria:
+
+Nível de urgência da consulta
+
+Ao agendar:
+
+"Qual a urgência?"
+
+Baixa
+Média
+Alta
+
+Pacientes de maior urgência entram com prioridade na lista de espera.
+
+Isso conversa diretamente com:
+
+UX
+Organização da agenda
+Área da saúde
+Automação
+
+e dá um diferencial acadêmico ao projeto.
+
+
+PRIORIZAR:
+Acessibilidade (WCAG).
+Lista de espera inteligente.
+Dashboard do profissional.
+Fluxo simplificado de agendamento.
+Testes de usabilidade com usuários.
+
+Esses cinco pontos geram bastante conteúdo para o capítulo de UX e demonstram claramente que o sistema foi projetado para resolver problemas reais dos profissionais autônomos da saúde. 

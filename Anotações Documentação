@@ -1,0 +1,141 @@
+Documentação -----------------------------------------------------------------------------------
+ideia de apresentação do projeto: 
+Problema → Pesquisa → Solução proposta → Desenvolvimento → Testes → Resultados
+
+1 INTRODUÇÃO
+1.1 Objetivo Geral
+
+Desenvolver um sistema automatizado e acessível de agendamento para profissionais autônomos da área da saúde.
+
+1.2 Objetivos Específicos
+Identificar dificuldades no processo de agendamento.
+Aplicar princípios de UX Design.
+Desenvolver um protótipo funcional.
+Implementar recursos de acessibilidade.
+Avaliar a usabilidade do sistema.
+
+1.3 Estado da Arte 
+(oq abordar) Aqui vocês pesquisam:
+
+Sistemas de agendamento online.
+Experiência do usuário (UX).
+Acessibilidade digital.
+Plataformas como Doctoralia, Calendly, Agenda Edu etc.
+Estudos sobre profissionais autônomos da saúde.
+
+--------------------------------------------------------------------
+
+2 DESENVOLVIMENTO
+
+2.1 Contextualização do Problema
+    2.1.1 Profissionais Autônomos da Área da Saúde
+    Quem são.
+    Como trabalham.
+    Como realizam agendamentos.
+    Principais dificuldades.
+
+2.1.2 Problemas Encontrados
+    Troca excessiva de mensagens.
+    Horários conflitantes.
+    Cancelamentos.
+    Falta de lembretes.
+    Dificuldade para remarcação.
+
+2.2 Pesquisa UX
+
+(Essa parte é muito importante para justificar o sistema)
+
+2.2.1 Entrevistas
+    Quantas pessoas participaram.
+    Perfil dos participantes.
+    Perguntas realizadas.
+2.2.2 Personas
+        ENTRA A PARTE DO UX
+
+2.2.3 Jornada do Usuário
+
+Mostrar:
+
+Processo Atual
+
+Paciente
+↓
+Mensagem
+↓
+Espera resposta
+↓
+Confirmação
+
+Problemas encontrados.
+
+Processo Proposto
+
+Paciente
+↓
+Sistema
+↓
+Agenda
+↓
+Confirmação automática
+
+2.3 Análise do Sistema
+
+    2.3.1 Requisitos Funcionais
+    2.3.2 Requisitos Não Funcionais
+    2.3.3 Casos de Uso
+                    Diagrama UML.
+    2.3.4 Fluxo de Eventos
+                    Fluxo de agendamento.
+                    Fluxo de cancelamento.
+                    Fluxo de lista de espera.
+
+2.4 Arquitetura da Informação e UX
+    2.4.1 Mapa de Navegação
+        Login
+        Cadastro
+        Agenda
+        Minhas consultas
+        Notificações
+    2.4.2 Wireframes
+    2.4.3 Protótipo de Alta Fidelidade
+                Mostrar as telas do Figma.
+                Explicar: Cores, Tipografia, Componentes e Acessibilidade
+
+2.5 Banco de Dados (PESQUISAR E SE APROFUNDAR)
+MER.
+Relacionamentos.
+Tabelas.
+
+2.6 Desenvolvimento da Aplicação (PARTE DO COD)
+    2.6.1 Tecnologias Utilizadas
+                HTML
+                CSS
+                JavaScript
+                Tailwind
+                LocalStorage
+    2.6.2 Implementação das Funcionalidades
+                Login.
+                Agendamento.
+                Lista de espera.
+                Notificações.
+2.7 Interface do Sistema --> Mostrar as telas prontas.
+                                Tela inicial.
+                                Agenda.
+                                Agendamento.
+                                Área do profissional.
+                                Lista de espera.
+
+3 RESULTADOS
+    3.1 Testes de Usabilidade
+            Quantidade de participantes.
+            Tarefas realizadas.
+    3.2 Resultados Obtidos
+            Todos conseguiram concluir o agendamento.
+            Redução do número de etapas.
+            Facilidade de uso.
+    3.3 Conclusão
+            Retomar os objetivos.
+            Mostrar se eles foram alcançados.
+
+
+Profissionais autônomos → Problemas encontrados → Pesquisa UX → Personas → Jornada → Requisitos → Protótipo → Desenvolvimento → Testes → Resultados.
